@@ -1,9 +1,13 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from './core/settings';
-import type { Mode, Stats } from './scene/Experience';
+import type { Mode, Stats, Telemetry } from './scene/Experience';
+import type { TravelMode } from './world/tour';
+import { ROUTE } from './world/route';
+import MiniMap from './components/MiniMap';
 
 const Experience = lazy(() => import('./scene/Experience'));
 const EMPTY_STATS: Stats = { fps: 0, frameMs: 0, p95: 0, calls: 0, triangles: 0, distance: 0, height: 0, heading: 0, grounded: true, boundary: false, x: 0, y: 0, z: 0, renderer: '' };
+const INITIAL_TELEMETRY: Telemetry = { ...ROUTE[0], y: 0, heading: 0, routeDistance: 0, routeOffset: 0, complete: false, altitude: 30 };
 function MountainMark() {
   return <svg width="35" height="32" viewBox="0 0 42 34" fill="none" aria-hidden="true"><path d="M2 29 17 5l11 18 5-9 8 15M10 29l9-14 9 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
@@ -25,6 +29,11 @@ class SceneBoundary extends Component<{ children: ReactNode; onError(message: st
 
 export default function App() {
   const [mode, setMode] = useState<Mode>('intro');
+  const [travel, setTravel] = useState<TravelMode>('air');
+  const [speed, setSpeed] = useState(6), [altitude, setAltitude] = useState(30);
+  const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY);
+  const [recenterToken, setRecenterToken] = useState(0), [arrived, setArrived] = useState(false);
+  const [replayToken, setReplayToken] = useState(0);
   const [ready, setReady] = useState(false), [error, setError] = useState('');
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -38,11 +47,19 @@ export default function App() {
   }, []);
   const onReady = useCallback(() => setReady(true), []);
   const onError = useCallback((message: string) => { setError(message); setReady(false); setMode('paused'); }, []);
-  const start = () => {
+  const onComplete = useCallback(() => { setArrived(true); pause(); }, [pause]);
+  const start = (nextTravel: TravelMode = travel) => {
     if (!ready || error) return;
+    if (nextTravel !== travel) {
+      setTravel(nextTravel); setArrived(false);
+      setNotice(nextTravel === 'air' ? '已切入半空，从最近的路径位置自动前进。' : '已回到此前保留的徒步位置。');
+    } else if (arrived && nextTravel === 'air') {
+      setReplayToken(t => t + 1); setArrived(false);
+    }
     setMode('walking');
     const canvas = document.querySelector('canvas');
     canvas?.focus();
+    if (nextTravel === 'air') return;
     try {
       const result = canvas?.requestPointerLock();
       result?.catch(() => { setLocked(false); setNotice('鼠标未锁定：按住画面拖动，或使用方向键转头。'); });
@@ -66,23 +83,26 @@ export default function App() {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || settingsOpen) return;
       if (event.code === 'KeyP' && !event.repeat) setShowStats(s => !s);
       if (event.code === 'Escape' && mode === 'walking') pause();
+      if (event.code === 'Space' && travel === 'air' && mode !== 'intro' && !event.repeat && !(event.target instanceof Element && event.target.closest('button'))) {
+        event.preventDefault(); if (mode === 'walking') pause(); else start();
+      }
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [mode, pause, settingsOpen]);
+  }, [mode, pause, settingsOpen, travel, arrived, ready, error]);
 
-  return <main className={`app mode-${mode}`}>
+  return <main className={`app mode-${mode} travel-${travel}`}>
     <div className="scene-layer">
       <SceneBoundary onError={onError}><Suspense fallback={<div className="scene-loading">正在准备山野…</div>}>
-        <Experience mode={mode} settings={settings} resetToken={resetToken} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
+        <Experience mode={mode} settings={settings} resetToken={resetToken} replayToken={replayToken} travel={travel} speed={speed} altitude={altitude} recenterToken={recenterToken} onTelemetry={setTelemetry} onComplete={onComplete} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
       </Suspense></SceneBoundary>
     </div>
     <div className="scene-shade" aria-hidden="true" />
     <header className="topbar">
       <div className="brand"><MountainMark /><div><span className="brand-title">鳌太行旅</span><span className="brand-sub">AOTAI · FIELD NOTES</span></div></div>
-      {mode === 'walking' && <div className="compass" aria-label={`虚拟场景朝向 ${Math.round(stats.heading)} 度`}><span>{['北', '东北', '东', '东南', '南', '西南', '西', '西北'][Math.round(stats.heading / 45) % 8]}</span><i /><span className="heading">{Math.round(stats.heading).toString().padStart(3, '0')}°</span><i /><span>方位</span><b>⌃</b></div>}
+      {mode === 'walking' && <div className="compass" aria-label={`虚拟场景朝向 ${Math.round(telemetry.heading)} 度`}><span>{['北', '东北', '东', '东南', '南', '西南', '西', '西北'][Math.round(telemetry.heading / 45) % 8]}</span><i /><span className="heading">{Math.round(telemetry.heading).toString().padStart(3, '0')}°</span><i /><span>方位</span><b>⌃</b></div>}
       <div className="top-actions">
-        <span className="prototype-label"><span className="live-dot" />阶段 01<span className="divider">/</span>技术原型</span>
+        <span className="prototype-label"><span className="live-dot" />阶段 01.1<span className="divider">/</span>漫游原型</span>
         <button className={`icon-button ${showStats ? 'selected' : ''}`} title="性能面板（P）" aria-label="切换性能面板" aria-pressed={showStats} onClick={() => setShowStats(!showStats)}><span className="bars">▂▅▇</span></button>
         <button className="icon-button" aria-label="体验设置" onClick={openSettings}><Gear /></button>
         {mode === 'walking' && <button className="icon-button pause-button" aria-label="暂停体验" onClick={pause}>Ⅱ</button>}
@@ -93,15 +113,16 @@ export default function App() {
       <div className="eyebrow"><span />把脚步，交还给山野</div>
       <h1 id="welcome-title">山在那里。<br /><span>慢慢走过去。</span></h1>
       <p className="welcome-description">离开屏幕里的喧闹，走进一段安静的山路。<br />不赶路，不闯关。此刻，只需要向前。</p>
-      <div className="start-row"><button className="primary-button" onClick={start} disabled={!ready}>{ready ? '进入山野' : '正在准备场景'}{ready ? <Arrow /> : <span className="spinner" />}</button><span className="start-note">第一人称 · 自由步行</span></div>
-      <div className="prototype-note"><span className="outline-badge">原型说明</span><p>当前为原创程序测试地形，非真实鳌太地形还原。<br />本阶段用于体验行走与碰撞，暂不含声音和天气变化。</p></div>
+      <div className="start-row"><button className="primary-button" onClick={() => start('air')} disabled={!ready}>{ready ? '半空漫游' : '正在准备场景'}{ready ? <Arrow /> : <span className="spinner" />}</button><button className="secondary-button" onClick={() => start('foot')} disabled={!ready}>自由徒步<span>↗</span></button></div>
+      <p className="start-caption">高空鸟瞰 · 自动前进 · 实时小地图</p>
+      <div className="prototype-note"><span className="outline-badge">原型说明</span><p>当前为原创程序测试地形，非真实鳌太地形还原。<br />可切换半空漫游与徒步，暂不含声音和天气变化。</p></div>
     </section>}
 
     {mode === 'intro' && !error && <aside className="field-card" aria-label="本次体验说明">
       <span className="eyebrow">山野手记 / 001</span>
       <RouteSketch />
-      <div className="field-card-title"><h2>从第一步开始</h2><span>01</span></div>
-      <p>试着上坡、绕过岩石，<br />再停下来，看看远处。</p>
+      <div className="field-card-title"><h2>换个高度，看山</h2><span>↗</span></div>
+      <p>让山路带你向前，<br />你只管环顾四周。</p>
       <div className="field-card-foot"><span>测试场景 · 非导航地图</span><span>↗</span></div>
     </aside>}
 
@@ -111,24 +132,31 @@ export default function App() {
     </footer>}
 
     {mode === 'walking' && <>
-      <div className="crosshair" aria-hidden="true" />
-      <div className="walking-bottom"><div className="journey-status"><span className="eyebrow">沿着自己的节奏</span><div><strong>{stats.distance.toFixed(0)}</strong><span>米 · 本次步行</span></div><span className="terrain-label">程序测试地形 · 非实地路线</span></div>
-        <div className="walking-help"><span><kbd>W A S D</kbd>移动 <kbd>SHIFT</kbd> 慢行</span><span>{locked ? '移动鼠标环顾四周' : '按住画面拖动 / 方向键转头'}<span className="divider">·</span><kbd>ESC</kbd> 暂停</span></div>
+      {travel === 'foot' && <div className="crosshair" aria-hidden="true" />}
+      <div className="walking-bottom"><div className="journey-status"><span className="eyebrow">{travel === 'air' ? '让山路，带你向前' : '沿着自己的节奏'}</span><div><strong>{telemetry.distance.toFixed(0)}</strong><span>米 · {travel === 'air' ? '路径位置' : '本次步行'}</span></div><span className="terrain-label">{travel === 'air' ? `自动前进 ${speed} 米/秒 · 离地约 ${telemetry.altitude.toFixed(0)} 米` : '程序测试地形 · 非实地路线'}</span></div>
+        <div className="walking-help">{travel === 'foot' && <span><kbd>W A S D</kbd>移动 <kbd>SHIFT</kbd> 慢行</span>}<span>{locked ? '移动鼠标环顾四周' : '按住画面拖动 / 方向键转头'}<span className="divider">·</span><kbd>{travel === 'air' ? 'SPACE' : 'ESC'}</kbd> 暂停</span></div>
       </div>
+      {travel === 'air' && <section className="tour-controls" aria-label="半空漫游控制">
+        <div className="tour-control-row"><span className="tour-label">前进速度</span><div className="speed-options" role="group" aria-label="漫游速度">{[3, 6, 12].map(s => <button key={s} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s === 3 ? '舒缓' : s === 6 ? '标准' : '快速'}<small>{s} 米/秒</small></button>)}</div></div>
+        <div className="tour-control-row tour-secondary"><label htmlFor="tour-altitude">视角高度</label><select id="tour-altitude" value={altitude} onChange={e => setAltitude(Number(e.target.value))}><option value="10">低空 · 10 米</option><option value="30">鸟瞰 · 30 米</option></select><button onClick={() => setRecenterToken(t => t + 1)}>视角回正</button><button onClick={pause} aria-label="暂停漫游">Ⅱ 暂停</button></div>
+      </section>}
       {stats.boundary && <div className="toast">已到达原型边界，请转身继续探索。</div>}
     </>}
 
+    {mode !== 'intro' && !error && <MiniMap telemetry={telemetry} travel={travel} />}
+
     {mode === 'paused' && !settingsOpen && !error && <section className="pause-overlay" aria-labelledby="pause-title">
-      <div className="pause-panel"><span className="eyebrow">给脚步一点留白</span><h1 id="pause-title">在这里，歇一会。</h1><p>山还在那里，旅程可以慢慢继续。</p>
-        <button className="primary-button" onClick={start} disabled={!ready}>继续行走<Arrow /></button>
-        <div className="pause-links"><button onClick={openSettings}>体验设置</button><button onClick={() => { setResetToken(t => t + 1); setNotice('已回到测试场景起点。'); }}>回到起点</button><button onClick={() => { setResetToken(t => t + 1); setMode('intro'); }}>返回首页</button></div>
+      <div className="pause-panel"><span className="eyebrow">{arrived ? '这段山路，已看过' : '给旅程一点留白'}</span><h1 id="pause-title">{arrived ? '已到达样段终点。' : '在这里，歇一会。'}</h1><p>{arrived ? '可以换个速度重游，或回到地面慢慢走。' : '山还在那里，旅程可以慢慢继续。'}</p>
+        <button className="primary-button" onClick={() => start()} disabled={!ready}>{arrived ? '重新漫游' : travel === 'air' ? '继续漫游' : '继续行走'}<Arrow /></button>
+        <div className="travel-switch"><button className="text-button" onClick={() => start(travel === 'air' ? 'foot' : 'air')}>{travel === 'air' ? '切换自由徒步' : '切换半空漫游'} ↗</button><small>{travel === 'air' ? '返回此前保留的徒步位置' : '从最近的路径点自动向前'}</small></div>
+        <div className="pause-links"><button onClick={openSettings}>体验设置</button><button onClick={() => { setResetToken(t => t + 1); setArrived(false); setNotice('已回到测试场景起点。'); }}>回到起点</button><button onClick={() => { setResetToken(t => t + 1); setArrived(false); setMode('intro'); }}>返回首页</button></div>
         <span className="pause-note">暂离窗口会自动暂停 · 本阶段不保存旅程进度</span>
       </div>
     </section>}
 
     {showStats && <aside className="stats-panel" aria-label="性能面板"><div className="stats-title"><span>运行观测</span><span>实时 / 0.5s</span></div>
       <div className="fps"><strong>{stats.fps || '—'}</strong><span>FPS</span></div>
-      <dl><div><dt>平均帧时间</dt><dd>{stats.frameMs.toFixed(1)} ms</dd></div><div><dt>P95 · 最近窗口</dt><dd>{stats.p95.toFixed(1)} ms</dd></div><div><dt>绘制调用 / 三角形</dt><dd>{stats.calls} / {(stats.triangles / 1000).toFixed(1)}k</dd></div><div><dt>地面状态</dt><dd>{stats.grounded ? '已接地' : '落地中'}</dd></div><div><dt>画质 / 内部像素比</dt><dd>{settings.quality === 'eco' ? '节能 / 0.75' : '均衡 / 1.0'}</dd></div><div><dt>局部坐标 X / Z</dt><dd>{stats.x.toFixed(1)} / {stats.z.toFixed(1)}</dd></div></dl>
+      <dl><div><dt>平均帧时间</dt><dd>{stats.frameMs.toFixed(1)} ms</dd></div><div><dt>P95 · 最近窗口</dt><dd>{stats.p95.toFixed(1)} ms</dd></div><div><dt>绘制调用 / 三角形</dt><dd>{stats.calls} / {(stats.triangles / 1000).toFixed(1)}k</dd></div><div><dt>视角状态</dt><dd>{travel === 'air' ? '半空漫游' : stats.grounded ? '已接地' : '落地中'}</dd></div><div><dt>画质 / 内部像素比</dt><dd>{settings.quality === 'eco' ? '节能 / 0.75' : '均衡 / 1.0'}</dd></div><div><dt>局部坐标 X / Z</dt><dd>{stats.x.toFixed(1)} / {stats.z.toFixed(1)}</dd></div></dl>
       <p>当前浏览器实测，不代表所有普通电脑。<br />此坐标为虚拟局部坐标，非地理位置。</p>
     </aside>}
 

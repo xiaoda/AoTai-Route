@@ -10,6 +10,7 @@ export interface Rock {
   rotation: number;
   shape?: 'boulder';
 }
+export const TERRAIN_SIZE = 280;
 export const trailX = (z: number) => 6 * Math.sin(z * 0.038) + 2 * Math.sin(z * 0.09);
 export function terrainHeight(x: number, z: number): number {
   const d = x - trailX(z);
@@ -21,7 +22,7 @@ export function terrainHeight(x: number, z: number): number {
     * Math.sin(x * 0.45 + z * 0.31) * Math.cos(z * 0.27);
   return ridge + undulation + shoulder + detail;
 }
-export function buildTerrain(size = 280, segments = 160, height = terrainHeight): TerrainData {
+export function buildTerrain(size = TERRAIN_SIZE, segments = 160, height = terrainHeight): TerrainData {
   const positions = new Float32Array((segments + 1) ** 2 * 3);
   const indices = new Uint32Array(segments * segments * 6);
   const step = size / segments;

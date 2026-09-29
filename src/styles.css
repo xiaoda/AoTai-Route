@@ -131,3 +131,76 @@ input[type=checkbox]:checked::before { transform: translateX(16px); background: 
 @media (max-width: 1000px) { .field-card { display: none; } .topbar { padding: 24px; } .intro-footer { left: 24px; right: 24px; } .welcome { left: 7%; top: 23%; } .footer-note { display: none; } .compass { display: none; } .walking-bottom { left: 24px; right: 24px; } .stats-panel { right: 24px; } }
 @media (max-width: 600px) { .app { min-height: 720px; } .topbar { padding: 22px; } .brand-title { font-size: 20px; } .brand-sub { font-size: 8px; } .prototype-label { display: none; } .top-actions { gap: 8px; } .welcome { top: 165px; left: 26px; right: 26px; } .welcome h1 { font-size: clamp(35px, 7.5vw, 44px); } .welcome-description { font-size: 15px; } .start-row { gap: 15px; } .start-note { font-size: 10px; } .primary-button { min-width: 165px; gap: 25px; } .prototype-note p { font-size: 11px; } .control-guide { gap: 14px; font-size: 11px; } .walking-help { max-width: 180px; font-size: 10px; } .walking-help kbd { margin: 0 3px; } .stats-panel { width: min(292px, calc(100vw - 48px)); } .pause-panel { padding: 24px; } .pause-links { gap: 18px; } .pause-note { font-size: 10px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* 阶段 1.1：飞行手记。地图与控制台分居两侧，把中间留给风景。 */
+.secondary-button { display: inline-flex; align-items: center; gap: 26px; min-height: 54px; padding: 12px 20px; color: var(--paper); background: #233b2f55; border: 1px solid #e6edce60; border-radius: 3px; font-size: 14px; }
+.secondary-button:hover { background: #d9e29f25; }
+.start-caption { margin-top: 12px; font-size: 12px; letter-spacing: .12em; color: #e0e7d9bf; }
+.travel-switch { margin-top: 20px; }
+.travel-switch small { display: block; font-size: 11px; color: var(--muted); margin-top: 7px; }
+.walking-bottom { right: 338px; flex-direction: column; align-items: flex-start; gap: 16px; }
+.walking-help { align-items: flex-start; font-size: 11px; }
+.walking-help kbd:first-child { margin-left: 0; }
+.travel-air .walking-bottom { bottom: 176px; }
+.tour-controls { position: absolute; bottom: 30px; left: 44px; width: 430px; padding: 16px 20px; border: 1px solid #e1ebd633; border-radius: 4px; background: #1c2e27ed; backdrop-filter: blur(10px); }
+.tour-control-row { display: flex; align-items: center; gap: 16px; }
+.tour-label, .tour-secondary label { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.speed-options { display: flex; flex: 1; gap: 5px; }
+.speed-options button { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 10px; border: 1px solid transparent; border-radius: 2px; background: transparent; color: #d4dec8; font-size: 13px; }
+.speed-options button small { font-size: 10px; opacity: .75; font-variant-numeric: tabular-nums; }
+.speed-options button[aria-pressed=true] { color: var(--lime); background: #d9e29f12; border-color: #d9e29f60; }
+.speed-options button:hover { background: #d9e29f20; }
+.tour-secondary { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); gap: 11px; }
+.tour-secondary select { background: #21392b; border: 1px solid #cbd9b64d; color: #e8eede; font-size: 11px; padding: 6px; border-radius: 2px; min-width: 114px; }
+.tour-secondary button { background: transparent; color: #e0e8d5; font-size: 11px; padding: 8px 5px; white-space: nowrap; }
+.tour-secondary button:hover { color: var(--lime); }
+.mini-map { position: absolute; right: 44px; bottom: 30px; width: 250px; padding: 17px 18px 12px; border: 1px solid #e1ebd63b; border-radius: 4px; background: #1c2e27ed; backdrop-filter: blur(10px); z-index: 2; pointer-events: none; }
+.map-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.map-heading h2 { font-family: "Songti SC", "SimSun", Georgia, serif; font-size: 17px; font-weight: 400; letter-spacing: .06em; }
+.map-heading > span { font-size: 10px; color: var(--lime); }
+.mini-map svg { display: block; width: 100%; margin: 6px 0 0; overflow: visible; }
+.mini-map text { fill: #dce5ce; font-family: "Microsoft YaHei", sans-serif; font-size: 9px; }
+.map-progress { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; color: #d2dec7; }
+.map-progress strong { font: 22px Georgia, serif; color: var(--lime); }
+.map-progress small { font: 10px "Microsoft YaHei", sans-serif; margin-left: 3px; }
+.map-progress-track { height: 2px; background: #d9e29f25; margin: 7px 0 10px; }
+.map-progress-track span { display: block; height: 100%; background: var(--lime); }
+.mini-map p { font-size: 10px; color: #c0cfb6; }
+.map-disclaimer { margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--line); color: #c0ccb6; font-size: 10px; letter-spacing: .045em; }
+.mode-paused .mini-map { background: #1c2e27f5; }
+.mode-walking .stats-panel, .mode-paused .stats-panel { left: 44px; right: auto; }
+@media (max-height: 800px) and (min-width: 1000px) {
+  .welcome { top: 19%; }
+  .prototype-note { margin-top: 17px; }
+  .travel-air .walking-bottom { bottom: 170px; gap: 9px; }
+  .journey-status strong { font-size: 30px; }
+  .tour-controls { bottom: 24px; }
+  .mini-map { bottom: 24px; width: 236px; }
+}
+@media (max-width: 1000px) {
+  .tour-controls { left: 24px; width: 404px; padding: 14px; }
+  .walking-bottom { right: 285px; }
+  .mini-map { right: 24px; width: 220px; padding: 14px; }
+  .mode-paused .pause-panel { margin-right: 240px; padding: 20px; }
+  .mode-paused .pause-panel > p { font-size: 13px; }
+  .mode-paused .pause-links { gap: 14px; }
+  .mode-walking .stats-panel, .mode-paused .stats-panel { left: 24px; right: auto; }
+}
+@media (max-width: 700px) {
+  .tour-controls { width: calc(100% - 48px); bottom: 22px; }
+  .mini-map { top: 105px; bottom: auto; width: 174px; padding: 10px; }
+  .map-heading h2 { font-size: 14px; }
+  .map-heading > span { display: none; }
+  .map-disclaimer { font-size: 9px; }
+  .walking-bottom { right: 24px; }
+  .walking-help { max-width: none; }
+  .mode-paused .pause-panel { margin: 270px 0 0; padding: 15px; }
+  .pause-panel h1 { margin-top: 8px; }
+  .pause-panel > p { margin: 10px 0 16px; }
+  .pause-links { margin: 12px 0; }
+  .travel-switch { margin-top: 12px; }
+  .mode-walking .stats-panel, .mode-paused .stats-panel { width: calc(100% - 226px); min-width: 154px; padding: 12px; }
+  .stats-panel dl > div { flex-wrap: wrap; }
+  .start-row { gap: 12px; }
+  .secondary-button { padding: 12px; gap: 10px; }
+}

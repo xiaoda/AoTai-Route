@@ -6,17 +6,25 @@ import { buildTerrain, generateRocks, sampleTerrain, trailX } from '../world/ter
 import { initPhysics, Walker } from '../world/simulation';
 import { isMovementKey, movement, turn, type InputState } from '../core/input';
 import type { Settings } from '../core/settings';
+import { AirTour, type TravelMode } from '../world/tour';
+import { projectToRoute } from '../world/route';
 
 export type Mode = 'intro' | 'walking' | 'paused';
+export interface Telemetry {
+  x: number; y: number; z: number; heading: number; distance: number;
+  routeDistance: number; routeOffset: number; complete: boolean; altitude: number;
+}
 export interface Stats {
   fps: number; frameMs: number; p95: number; calls: number; triangles: number;
   distance: number; height: number; heading: number; grounded: boolean; boundary: boolean;
   x: number; y: number; z: number; renderer: string;
 }
 interface Props {
-  mode: Mode; settings: Settings; resetToken: number;
+  mode: Mode; settings: Settings; resetToken: number; travel: TravelMode;
+  speed: number; altitude: number; recenterToken: number; replayToken: number;
   onReady(): void; onPause(): void; onError(message: string): void;
   onStats(stats: Stats): void; onInputMode(locked: boolean): void;
+  onTelemetry(telemetry: Telemetry): void; onComplete(): void;
 }
 function WalkingScene(props: Props) {
   const { camera, gl } = useThree();
@@ -24,7 +32,13 @@ function WalkingScene(props: Props) {
   const terrain = useMemo(() => buildTerrain(), []);
   const rocks = useMemo(() => generateRocks(terrain), [terrain]);
   const walker = useRef<Walker | null>(null);
-  const input = useRef<InputState>({ keys: new Set(), yaw: 0, pitch: 0.035 });
+  const input = useRef<InputState>({ keys: new Set(), yaw: 0, pitch: props.travel === 'air' ? -0.42 : 0.035 });
+  const footLook = useRef({ yaw: 0, pitch: 0.035 });
+  const tour = useMemo(() => new AirTour(), []);
+  const lastTravel = useRef(props.travel), lastRecenter = useRef(props.recenterToken);
+  const lastReplay = useRef(props.replayToken);
+  const completionSent = useRef(false), mapElapsed = useRef(0);
+  const telemetry = useRef<Telemetry | null>(null);
   const samples = useRef<number[]>([]), elapsed = useRef(0);
   const diagnostic = useRef<Stats | null>(null);
   const firstPosition = useRef(true);
@@ -45,14 +59,16 @@ function WalkingScene(props: Props) {
     const ext = context.getExtension('WEBGL_debug_renderer_info');
     renderer.current = ext ? String(context.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : 'WebGL2（设备名称未公开）';
     const canvas = gl.domElement;
-    canvas.setAttribute('aria-label', '三维山地体验，WASD 移动，方向键或鼠标转头');
+    canvas.setAttribute('aria-label', '三维山地体验，半空自动漫游或 WASD 徒步，拖动画面或方向键转头');
     canvas.setAttribute('tabindex', '-1');
     const lost = (event: Event) => { event.preventDefault(); latest.current.onError('图形上下文已中断。请刷新重新进入；本阶段不保存旅程位置。'); };
     canvas.addEventListener('webglcontextlost', lost);
     // 只读诊断，不提供跳过碰撞或修改角色位置的测试捷径。
     Object.defineProperty(window, '__AOTAI_DEBUG__', { configurable: true, get: () => ({
       mode: latest.current.mode, ready: !!walker.current, ...diagnostic.current,
-      position: walker.current?.position, keys: [...input.current.keys],
+      travel: latest.current.travel, tourDistance: tour.distance, telemetry: telemetry.current,
+      position: latest.current.travel === 'air' ? { x: camera.position.x, y: camera.position.y, z: camera.position.z } : walker.current?.position,
+      walkerPosition: walker.current?.position, keys: [...input.current.keys],
       locked: document.pointerLockElement === canvas,
     }) });
     return () => {
@@ -60,7 +76,7 @@ function WalkingScene(props: Props) {
       canvas.removeEventListener('webglcontextlost', lost);
       Reflect.deleteProperty(window, '__AOTAI_DEBUG__');
     };
-  }, [gl, terrain, rocks]);
+  }, [gl, terrain, rocks, camera, tour]);
 
   useEffect(() => {
     const c = camera as PerspectiveCamera;
@@ -80,7 +96,7 @@ function WalkingScene(props: Props) {
       if (active()) latest.current.onPause();
     };
     const keyDown = (event: KeyboardEvent) => {
-      if (!active() || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (!active() || (event.target instanceof Element && event.target.closest('input, select, textarea, button'))) return;
       if (isMovementKey(event.code)) { event.preventDefault(); input.current.keys.add(event.code); }
       if (event.code === 'Escape') stop();
     };
@@ -91,6 +107,7 @@ function WalkingScene(props: Props) {
     };
     const pointerDown = (event: PointerEvent) => {
       if (!active() || document.pointerLockElement === canvas || event.button !== 0) return;
+      canvas.focus();
       dragging = true; lastX = event.clientX; lastY = event.clientY;
       canvas.setPointerCapture(event.pointerId);
     };
@@ -128,9 +145,33 @@ function WalkingScene(props: Props) {
   useFrame((state, delta) => {
     const w = walker.current, p = latest.current;
     if (!w) return;
+    let forceTelemetry = false;
+    if (lastTravel.current !== p.travel) {
+      if (p.travel === 'air') {
+        footLook.current = { yaw: input.current.yaw, pitch: input.current.pitch };
+        tour.seek(projectToRoute(w.position).distance);
+        input.current.yaw = 0; input.current.pitch = p.altitude === 30 ? -0.42 : -0.25;
+      } else {
+        input.current.yaw = footLook.current.yaw; input.current.pitch = footLook.current.pitch;
+      }
+      input.current.keys.clear(); w.pause(); firstPosition.current = true;
+      completionSent.current = false; lastTravel.current = p.travel; forceTelemetry = true;
+    }
     if (lastReset.current !== p.resetToken) {
-      w.reset(); input.current.yaw = 0; input.current.pitch = 0.035;
+      w.reset(); tour.reset(); completionSent.current = false;
+      footLook.current = { yaw: 0, pitch: 0.035 };
+      input.current.keys.clear(); input.current.yaw = 0; input.current.pitch = p.travel === 'air' ? (p.altitude === 30 ? -0.42 : -0.25) : 0.035;
       lastReset.current = p.resetToken; firstPosition.current = true;
+      forceTelemetry = true;
+    }
+    if (lastRecenter.current !== p.recenterToken) {
+      input.current.yaw = 0; input.current.pitch = p.travel === 'air' ? (p.altitude === 30 ? -0.42 : -0.25) : 0.035;
+      lastRecenter.current = p.recenterToken; forceTelemetry = true;
+    }
+    if (lastReplay.current !== p.replayToken) {
+      tour.reset(); completionSent.current = false; input.current.keys.clear();
+      input.current.yaw = 0; input.current.pitch = p.altitude === 30 ? -0.42 : -0.25;
+      firstPosition.current = true; lastReplay.current = p.replayToken; forceTelemetry = true;
     }
     if (p.mode === 'intro') {
       camera.position.set(17, sampleTerrain(terrain, 17, 65) + 7, 65);
@@ -140,26 +181,42 @@ function WalkingScene(props: Props) {
         const dt = Math.min(delta, 0.1), keys = input.current.keys;
         input.current.yaw += (Number(keys.has('ArrowLeft')) - Number(keys.has('ArrowRight'))) * dt * 1.2;
         input.current.pitch = Math.max(-1.25, Math.min(1.25, input.current.pitch + (Number(keys.has('ArrowUp')) - Number(keys.has('ArrowDown'))) * dt * 0.8));
-        w.advance(delta, movement(keys, input.current.yaw));
+        if (p.travel === 'air') {
+          tour.advance(delta, p.speed);
+          if (tour.complete && !completionSent.current) {
+            completionSent.current = true; forceTelemetry = true; p.onComplete();
+          }
+        } else w.advance(delta, movement(keys, input.current.yaw));
       }
-      const eye = w.interpolatedEye;
-      const bob = p.settings.bob && p.mode === 'walking' && input.current.keys.size > 0 ? Math.sin(w.distance * 7.5) * 0.018 : 0;
+      const airPose = tour.pose(terrain, p.altitude);
+      const eye = p.travel === 'air' ? airPose : w.interpolatedEye;
+      const bob = p.travel === 'foot' && p.settings.bob && p.mode === 'walking' && input.current.keys.size > 0 ? Math.sin(w.distance * 7.5) * 0.018 : 0;
       camera.position.x = eye.x; camera.position.z = eye.z;
-      // 只平滑垂直跨阶，水平方向使用固定步插值，避免镜头穿进岩石。
+      // 徒步平滑垂直跨阶、水平用物理插值；漫游缓动跟随地形，不添加滚转与晃动。
       if (firstPosition.current) { camera.position.y = eye.y; firstPosition.current = false; }
-      camera.position.y += (eye.y + bob - camera.position.y) * (1 - Math.exp(-18 * Math.min(delta, 0.1)));
-      camera.rotation.set(input.current.pitch, input.current.yaw, 0, 'YXZ');
+      if (p.mode === 'walking') camera.position.y += (eye.y + bob - camera.position.y) * (1 - Math.exp(-(p.travel === 'air' ? 4 : 18) * Math.min(delta, 0.1)));
+      camera.rotation.set(input.current.pitch, input.current.yaw + (p.travel === 'air' ? airPose.yaw : 0), 0, 'YXZ');
+    }
+    const pos = p.travel === 'air' ? camera.position : w.position;
+    const heading = ((-camera.rotation.y * 180 / Math.PI) % 360 + 360) % 360;
+    mapElapsed.current += delta;
+    if (mapElapsed.current >= 0.1 || forceTelemetry) {
+      const projection = projectToRoute(pos);
+      telemetry.current = { x: pos.x, y: pos.y, z: pos.z, heading,
+        distance: p.travel === 'air' ? tour.distance : w.distance,
+        routeDistance: p.travel === 'air' ? tour.distance : projection.distance, routeOffset: projection.offset,
+        complete: p.travel === 'air' && tour.complete, altitude: Math.max(0, camera.position.y - sampleTerrain(terrain, pos.x, pos.z)) };
+      p.onTelemetry(telemetry.current); mapElapsed.current = 0;
     }
     samples.current.push(delta * 1000); elapsed.current += delta;
     if (elapsed.current >= 0.5) {
       const sorted = [...samples.current].sort((a, b) => a - b);
-      const pos = w.position;
       const stats: Stats = {
         fps: Math.round(samples.current.length / elapsed.current), frameMs: elapsed.current * 1000 / samples.current.length,
         p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
         calls: state.gl.info.render.calls, triangles: state.gl.info.render.triangles,
-        distance: w.distance, height: pos.y - 0.86, heading: ((-input.current.yaw * 180 / Math.PI) % 360 + 360) % 360,
-        grounded: w.grounded, boundary: w.boundaryReached, x: pos.x, y: pos.y, z: pos.z,
+        distance: p.travel === 'air' ? tour.distance : w.distance, height: sampleTerrain(terrain, pos.x, pos.z), heading,
+        grounded: p.travel === 'foot' && w.grounded, boundary: p.travel === 'foot' && w.boundaryReached, x: pos.x, y: pos.y, z: pos.z,
         renderer: renderer.current,
       };
       diagnostic.current = stats; latest.current.onStats(stats);
