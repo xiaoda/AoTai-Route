@@ -1,0 +1,95 @@
+import { afterEach, beforeAll, expect, test } from 'vitest';
+import { initPhysics, Walker, type WorldData } from './simulation';
+import { buildTerrain, sampleTerrain, trailX } from './terrain';
+
+beforeAll(async () => { await initPhysics(); });
+const walkers: Walker[] = [];
+afterEach(() => { walkers.splice(0).forEach(w => w.dispose()); });
+function make(data?: Partial<WorldData>) {
+  const t = buildTerrain(100, 40, () => 0);
+  const w = new Walker({ terrain: t, obstacles: [], spawn: { x: 0, y: 0, z: 10 }, ...data });
+  walkers.push(w);
+  for (let i = 0; i < 60; i++) w.advance(1 / 60, { x: 0, z: 0 });
+  return w;
+}
+
+test('静止时胶囊接地，眼睛距离地面约 1.68 米', () => {
+  const w = make();
+  expect(w.position.y).toBeGreaterThan(0.84);
+  expect(w.position.y).toBeLessThan(0.91);
+  expect(w.eyePosition.y).toBeCloseTo(1.70, 1);
+});
+test('30/60/144 FPS 下相同行进时间得到相同位移', () => {
+  const results = [30, 60, 144].map(fps => {
+    const w = make();
+    for (let i = 0; i < fps * 5; i++) w.advance(1 / fps, { x: 0, z: -1 });
+    return w.position.z;
+  });
+  expect(Math.max(...results) - Math.min(...results)).toBeLessThan(0.04);
+  expect(results[0]).toBeLessThan(4);
+});
+test('撞到高障碍会停下，不穿过岩石', () => {
+  const w = make({ obstacles: [{ x: 0, y: 1, z: 5, hx: 2, hy: 1, hz: 0.5, rotation: 0 }] });
+  for (let i = 0; i < 600; i++) w.advance(1 / 60, { x: 0, z: -1 });
+  expect(w.position.z).toBeGreaterThan(5.7);
+  expect(w.position.z).toBeLessThan(6.2);
+});
+test('测试岩块凸包与渲染同源，能阻挡角色', () => {
+  const w = make({ obstacles: [{ x: 0, y: 1, z: 5, hx: 2, hy: 1, hz: 1, rotation: 0, shape: 'boulder' }] });
+  for (let i = 0; i < 400; i++) w.advance(1 / 60, { x: 0, z: -1 });
+  expect(w.position.z).toBeGreaterThan(5);
+  expect(w.position.z).toBeLessThan(6.5);
+});
+test('可以跨越低台阶并重新贴地', () => {
+  const w = make({ obstacles: [{ x: 0, y: 0.1, z: 5, hx: 2, hy: 0.1, hz: 1, rotation: 0 }] });
+  for (let i = 0; i < 480; i++) w.advance(1 / 60, { x: 0, z: -1 });
+  expect(w.position.z).toBeLessThan(3);
+  expect(w.position.y).toBeLessThan(0.92);
+});
+test('斜向输入不会产生额外速度', () => {
+  const a = make(), b = make();
+  for (let i = 0; i < 120; i++) { a.advance(1 / 60, { x: 1, z: 0 }); b.advance(1 / 60, { x: 1, z: -1 }); }
+  // 不同三角网格接触路径有微小损耗，但斜走不能得到 sqrt(2) 倍速度。
+  const diagonal = Math.hypot(b.position.x, b.position.z - 10);
+  expect(diagonal).toBeLessThanOrEqual(a.position.x + 0.02);
+  expect(diagonal).toBeGreaterThan(a.position.x * 0.95);
+});
+test('沿连续坡面下坡仍保持贴地', () => {
+  const t = buildTerrain(100, 60, (_x, z) => z * 0.2);
+  const w = make({ terrain: t, spawn: { x: 0, y: 2, z: 10 } });
+  for (let i = 0; i < 300; i++) w.advance(1 / 60, { x: 0, z: -1 });
+  expect(w.position.y - sampleTerrain(t, w.position.x, w.position.z)).toBeGreaterThan(0.8);
+  expect(w.position.y - sampleTerrain(t, w.position.x, w.position.z)).toBeLessThan(1.02);
+});
+test('接近场景边缘时停止，不走出地形', () => {
+  const w = make({ spawn: { x: 46, y: 0, z: 10 } });
+  for (let i = 0; i < 180; i++) w.advance(1 / 60, { x: 1, z: 0 });
+  expect(w.position.x).toBeLessThanOrEqual(47);
+  expect(w.boundaryReached).toBe(true);
+});
+test('无效输入不会污染位置，静止时不明显漂移', () => {
+  const w = make(), start = w.position;
+  w.advance(NaN, { x: 1, z: 1 });
+  for (let i = 0; i < 300; i++) w.advance(1 / 60, { x: NaN, z: Infinity });
+  expect(Number.isFinite(w.position.y)).toBe(true);
+  expect(Math.hypot(w.position.x - start.x, w.position.z - start.z)).toBeLessThan(0.03);
+});
+test('长帧被限制，暂停时不补算积累时间，复位可用', () => {
+  const w = make();
+  w.advance(20, { x: 0, z: -1 });
+  expect(10 - w.position.z).toBeLessThan(0.3);
+  const p = { ...w.position };
+  w.pause();
+  expect(w.position).toEqual(p);
+  w.reset();
+  expect(w.position.z).toBe(10);
+});
+test('沿测试地形上坡保持在地面之上', () => {
+  const t = buildTerrain(160, 80);
+  const z = 35, x = trailX(z);
+  const w = make({ terrain: t, spawn: { x, z, y: sampleTerrain(t, x, z) } });
+  for (let i = 0; i < 300; i++) w.advance(1 / 60, { x: 0, z: -1 });
+  const ground = sampleTerrain(t, w.position.x, w.position.z);
+  expect(w.position.y - ground).toBeGreaterThan(0.8);
+  expect(w.position.y - ground).toBeLessThan(1.05);
+});
