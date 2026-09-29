@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, ACESFilmicToneMapping } from 'three';
 import Landscape from './Landscape';
-import { buildTerrain, generateRocks, sampleTerrain, trailX } from '../world/terrain';
+import { buildTerrain, generateRocks, sampleTerrain, trailX, ROUTE_START_Z } from '../world/terrain';
 import { initPhysics, Walker } from '../world/simulation';
 import { isMovementKey, movement, turn, type InputState } from '../core/input';
 import type { Settings } from '../core/settings';
@@ -21,7 +21,7 @@ export interface Stats {
 }
 interface Props {
   mode: Mode; settings: Settings; resetToken: number; travel: TravelMode;
-  speed: number; altitude: number; recenterToken: number; replayToken: number;
+  cruising: boolean; speed: number; altitude: number; recenterToken: number; replayToken: number;
   onReady(): void; onPause(): void; onError(message: string): void;
   onStats(stats: Stats): void; onInputMode(locked: boolean): void;
   onTelemetry(telemetry: Telemetry): void; onComplete(): void;
@@ -49,7 +49,7 @@ function WalkingScene(props: Props) {
     let cancelled = false;
     initPhysics().then(() => {
       if (cancelled) return;
-      const z = 62, x = trailX(z);
+      const z = ROUTE_START_Z, x = trailX(z);
       walker.current = new Walker({ terrain, obstacles: rocks, spawn: { x, y: sampleTerrain(terrain, x, z), z } });
       // 先让胶囊稳定落地，再通知 UI 可进入。
       for (let i = 0; i < 20; i++) walker.current.advance(1 / 60, { x: 0, z: 0 });
@@ -66,7 +66,7 @@ function WalkingScene(props: Props) {
     // 只读诊断，不提供跳过碰撞或修改角色位置的测试捷径。
     Object.defineProperty(window, '__AOTAI_DEBUG__', { configurable: true, get: () => ({
       mode: latest.current.mode, ready: !!walker.current, ...diagnostic.current,
-      travel: latest.current.travel, tourDistance: tour.distance, telemetry: telemetry.current,
+      travel: latest.current.travel, cruising: latest.current.cruising, tourDistance: tour.distance, telemetry: telemetry.current,
       position: latest.current.travel === 'air' ? { x: camera.position.x, y: camera.position.y, z: camera.position.z } : walker.current?.position,
       walkerPosition: walker.current?.position, keys: [...input.current.keys],
       rotation: { pitch: camera.rotation.x, yaw: camera.rotation.y, roll: camera.rotation.z },
@@ -175,15 +175,15 @@ function WalkingScene(props: Props) {
       firstPosition.current = true; lastReplay.current = p.replayToken; forceTelemetry = true;
     }
     if (p.mode === 'intro') {
-      camera.position.set(17, sampleTerrain(terrain, 17, 65) + 7, 65);
-      camera.lookAt(-10, 21, -95);
+      camera.position.set(-285, sampleTerrain(terrain, -285, -40) + 28, -40);
+      camera.lookAt(-380, 430, -1800);
     } else {
       if (p.mode === 'walking') {
         const dt = Math.min(delta, 0.1), keys = input.current.keys;
         input.current.yaw += (Number(keys.has('ArrowLeft')) - Number(keys.has('ArrowRight'))) * dt * 1.2;
         input.current.pitch = Math.max(-1.25, Math.min(1.25, input.current.pitch + (Number(keys.has('ArrowUp')) - Number(keys.has('ArrowDown'))) * dt * 0.8));
         if (p.travel === 'air') {
-          tour.advance(delta, p.speed);
+          if (p.cruising) tour.advance(delta, p.speed);
           if (tour.complete && !completionSent.current) {
             completionSent.current = true; forceTelemetry = true; p.onComplete();
           }
@@ -230,7 +230,7 @@ function WalkingScene(props: Props) {
 
 export default function Experience(props: Props) {
   return <Canvas
-    camera={{ fov: props.settings.fov, near: 0.08, far: 2200 }}
+    camera={{ fov: props.settings.fov, near: 0.15, far: 7500 }}
     dpr={props.settings.quality === 'eco' ? 0.75 : 1}
     gl={{ antialias: true, powerPreference: 'default', alpha: false }}
     onCreated={({ gl }) => { gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1.08; }}

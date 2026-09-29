@@ -1,16 +1,17 @@
-import { TERRAIN_SIZE, trailX } from './terrain';
+import { TERRAIN_SIZE, trailX, ROUTE_START_Z, ROUTE_END_Z } from './terrain';
 
 export interface FlatPoint { x: number; z: number }
 export interface RoutePoint extends FlatPoint { distance: number }
-/** 测试样段；不是 GPS 轨迹。累计距离为水平弧长，与徒步里程口径一致。 */
+/** 太白高山区虚拟体验路径；不是 GPS 轨迹。累计距离为水平弧长，与徒步里程口径一致。 */
 export const ROUTE: readonly RoutePoint[] = (() => {
   const points: RoutePoint[] = [];
-  for (let z = 62; z >= -116; z--) {
+  for (let z = ROUTE_START_Z; z >= ROUTE_END_Z; z--) {
     const x = trailX(z), previous = points.at(-1);
     points.push({ x, z, distance: previous ? previous.distance + Math.hypot(x - previous.x, z - previous.z) : 0 });
   }
   return points;
 })();
+export const VIEWPOINT = ROUTE.find(p => p.z === -64)!;
 export const routeLength = ROUTE.at(-1)!.distance;
 export const clampDistance = (d: number) => Number.isFinite(d) ? Math.max(0, Math.min(routeLength, d)) : 0;
 
@@ -36,7 +37,7 @@ export function projectToRoute(point: FlatPoint): { distance: number; offset: nu
   return { distance, offset: best };
 }
 
-/** 240×240 SVG；280 米全场景边界内缩 16 px；-Z 为图上方。 */
+/** 240×240 SVG；真实高程样段全场景边界内缩 16 px；-Z 为图上方。 */
 export function worldToMap(point: FlatPoint) {
   return { x: 16 + (point.x + TERRAIN_SIZE / 2) / TERRAIN_SIZE * 208, y: 16 + (point.z + TERRAIN_SIZE / 2) / TERRAIN_SIZE * 208 };
 }

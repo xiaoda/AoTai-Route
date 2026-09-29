@@ -25,3 +25,11 @@ test('边界采样有限，步道与岩石布置可复现', () => {
   expect(Number.isFinite(trailX(-80))).toBe(true);
   expect(generateRocks(t)).toEqual(generateRocks(t));
 });
+
+test('坡面岩石四元数归一，底部深入同源地面，不是浮在水平基座上', () => {
+ const t=buildTerrain(),rocks=generateRocks(t);
+ for(const r of rocks){const q=r.orientation!;expect(Math.hypot(q.x,q.y,q.z,q.w)).toBeCloseTo(1,10);
+ // 四元数旋转底部中心 (0,-0.6hy,0)。石体底面沿局部法线，与渲染/碰撞相同。
+ const y=-.6*r.hy,px=-2*(q.x*q.y-q.z*q.w)*(-y),py=(1-2*(q.x*q.x+q.z*q.z))*y,pz=2*(q.y*q.z+q.x*q.w)*y;
+ expect(r.y+py-sampleTerrain(t,r.x+px,r.z+pz)).toBeLessThan(.06);}
+});

@@ -1,0 +1,236 @@
+鳌太行旅 · 阶段 2 / v0.2 地形与画面样段
+
+真实性说明
+1. 大地形与远山：Mapzen Terrain Tiles（Terrarium），4 张 z12 瓦片；瓦片 HTTP 元数据均列出 USGS SRTM N33E107 / N34E107。
+2. 水平坐标：WGS84 / 源瓦片 Web Mercator 转换为原点处曲率半径定义的东-上-南局部米制。区域为太白山高山区，不宣称中心点是实测峰顶。
+3. 高程：保留源数据米制高程，SRTM 的 EGM96 基准；仅减去 3000 米作为渲染原点，没有垂直夸大。数据非最新测绘、非逐石扫描。
+4. z12 地面像素间距约 31.70 米；上游说明 SRTM 约 30 米采样、90 米名义质量。近景 8 米网格是插值，不是 8 米测量精度。
+5. 近景岩块、草簇、地表着色、光照、约 383 米虚拟体验路径与石海观景点：原创艺术化重建，不是真实轨迹、植被物种调查或建筑/湖泊复刻；不用于实地穿越导航。
+6. 近景范围 1024 × 1024 米；远景 8192 × 8192 米。细分接缝共用边界高程。数据已打包在本地，体验过程无需在线瓦片请求。
+7. 目前未加入声音、动态天气与旅程存档。
+
+来源与精度说明
+https://registry.opendata.aws/terrain-tiles/
+https://github.com/tilezen/joerd/blob/master/docs/formats.md
+https://github.com/tilezen/joerd/blob/master/docs/data-sources.md
+https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits
+
+资料参考（仅用于理解地貌，未复制其照片）：
+国家林业和草原局《大秦岭的封面太白山》，2021-08-27
+https://www.forestry.gov.cn/c/www/ztq/13099.jhtml
+候选中心点：PeakWiki 拔仙台条目；仅定位高山区，不当作测绘控制点
+https://www.peakwiki.org/peak.php?pid=39
+
+Terrain Tiles was accessed on 2026-09-29 from https://registry.opendata.aws/terrain-tiles.
+高程署名：Mapzen；USGS / SRTM。当前裁切区源数据是 USGS SRTM；以下同时保留服务的完整署名说明（其余区域未用于本样段）。
+
+# Attribution
+
+Attribution is required for many terrain tile data providers. Example language is provided below, but you are responsible for researching each project to follow their license terms. More details are available on the [Data Sources](data-sources.md) page at [Mapzen rights](https://mapzen.com/rights) for Mapzen's hosted service.
+
+***Required attribution:***
+
+```
+* ArcticDEM terrain data DEM(s) were created from DigitalGlobe, Inc., imagery and
+  funded under National Science Foundation awards 1043681, 1559691, and 1542736;
+* Australia terrain data © Commonwealth of Australia (Geoscience Australia) 2017;
+* Austria terrain data © offene Daten Österreichs – Digitales Geländemodell (DGM)
+  Österreich;
+* Canada terrain data contains information licensed under the Open Government
+  Licence – Canada;
+* Europe terrain data produced using Copernicus data and information funded by the
+  European Union - EU-DEM layers;
+* Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration
+* Mexico terrain data source: INEGI, Continental relief, 2016;
+* New Zealand terrain data Copyright 2011 Crown copyright (c) Land Information New
+  Zealand and the New Zealand Government (All rights reserved);
+* Norway terrain data © Kartverket;
+* United Kingdom terrain data © Environment Agency copyright and/or database right
+  2015. All rights reserved;
+* United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data
+  courtesy of the U.S. Geological Survey.
+```
+
+***Required attribution when using Mapzen's hosted service:***
+
+```
+* Mapzen
+* ArcticDEM terrain data DEM(s) were created from DigitalGlobe, Inc., imagery and
+  funded under National Science Foundation awards 1043681, 1559691, and 1542736;
+* Australia terrain data © Commonwealth of Australia (Geoscience Australia) 2017;
+* Austria terrain data © offene Daten Österreichs – Digitales Geländemodell (DGM)
+  Österreich;
+* Canada terrain data contains information licensed under the Open Government
+  Licence – Canada;
+* Europe terrain data produced using Copernicus data and information funded by the
+  European Union - EU-DEM layers;
+* Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration
+* Mexico terrain data source: INEGI, Continental relief, 2016;
+* New Zealand terrain data Copyright 2011 Crown copyright (c) Land Information New
+  Zealand and the New Zealand Government (All rights reserved);
+* Norway terrain data © Kartverket;
+* United Kingdom terrain data © Environment Agency copyright and/or database right
+  2015. All rights reserved;
+* United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data
+  courtesy of the U.S. Geological Survey.
+```
+
+### Where to attribute
+
+Attribution needs to "appear in a place that is reasonable to the medium or means you are utilising." [Specific examples](http://wiki.osmfoundation.org/wiki/License#Where_to_put_it.3F) are given by the OSM Foundation and are generally best practices for giving credit to any source. More information on attribution is on our [rights](https://mapzen.com/rights) page.
+
+## The fine print
+
+### 3DEP
+
+3DEP (formerly NED) are several public domain datasets released by USGS:
+
+> All 3DEP products available through The National Map are in the public domain and may be used without restriction.
+
+However, the USGS does request that proper credit be given when used for redistribution, resale, presentation or publication.
+
+`3DEP data courtesy of the U.S. Geological Survey`
+
+More details can be found on the NED/3DEP [FAQ](https://www2.usgs.gov/faq/categories/9865/5041) page, [info](http://nationalmap.gov/3DEP/3dep_prodserv.html) page, and general [acknowledging](https://www2.usgs.gov/visual-id/credit_usgs.html) page.
+
+
+### SRTM
+
+SRTM is a public domain dataset released as follows, circa 2000 by NASA/NGA with several updates including in 2014, now distributed by USGS:
+
+> 3.15
+>
+> a. Copyright protection is asserted for all products generated by these specifications which are distributed outside of the United States. No domestic copyright will be asserted.
+>
+> b. The copyright notice (with year of production inserted) states:
+>
+> © COPYRIGHT (year of production) BY THE UNITED STATES GOVERNMENT.
+> NO COPYRIGHT CLAIMED UNDER TITLE 17 U.S.C.
+
+However, the USGS does request that proper credit be given when used for redistribution, resale, presentation or publication.
+
+`SRTM data courtesy of the U.S. Geological Survey`
+
+More details can be found on the SRTM [about](https://lta.cr.usgs.gov/SRTM) from USGS and [about](http://www2.jpl.nasa.gov/srtm/) page from NASA, [data distribution policy](https://lta.cr.usgs.gov/srtm/data_distribution_policy) page, the [metadata](http://dds.cr.usgs.gov/srtm/version2_1/Documentation/MIL-PDF-89020B.pdf), and NASA/NGA original [memorandum of understanding](http://www2.jpl.nasa.gov/srtm/mou.html) and 2014 [press release](http://www.jpl.nasa.gov/news/news.php?release=2014-321) declassifying the global 30 meter data.
+
+### GMTED2010
+
+GMTED2010 is a public domain dataset released, circa 2010 by USGS:
+
+> Access constraints:
+>
+> No restrictions, All GMTED2010 data products are publically available. Any acquisition or use of these data signifies a user's agreement to comprehension and compliance of the USGS Standard Disclaimer. Ensure all portions of metadata are read and clearly understood before using these data in order to protect both user and USGS interests. Please refer to http://www.usgs.gov/privacy.html for the USGS disclaimer.
+>
+> Use constraints:
+>
+> Although the USGS is making these data available to others who may find the data of value, USGS does not warrant, endorse, or recommend the use of these data for any given purpose. The user assumes the entire risk related to the use of these data. USGS is providing these data "as is", and USGS disclaims any and all warranties, whether expressed or implied, including (without limitation) any implied warranties of merchantability or fitness for a particular purpose. In no event will USGS be liable to you or to any third party for any direct, indirect, incidental, consequential, special, or exemplary damages or lost profits resulting from any use or misuse of these data. Acknowledgement of the U.S. Geological Survey would be appreciated in products derived from these data. Any user who modifies the data is obligated to describe the types of modifications they perform. User specifically agrees not to misrepresent the data, nor to imply that changes made were approved or endorsed by the USGS.
+
+The USGS does request that proper credit be given when used for redistribution, resale, presentation or publication.
+
+`GMTED2010 data courtesy of the U.S. Geological Survey`
+
+More details can be found on the GMTED2010 [about](http://topotools.cr.usgs.gov/gmted_viewer/) page and [Open File Report](http://pubs.usgs.gov/of/2011/1073/pdf/of2011-1073.pdf) PDF, and updated [home](https://lta.cr.usgs.gov/GMTED2010) page.
+
+### ETOPO1
+
+ETOPO1 is a public domain dataset released as follows, circa 2009 by NOAA:
+
+> Use Limitations
+>
+> Not to be used for navigation. Although these data are of high quality and useful for planning and modeling purposes, they are not suitable for navigation. For navigation, please refer to the NOS nautical chart series.
+>
+> Produced by the NOAA National Geophysical Data Center. Not subject to copyright protection within the United States.
+>
+> While every effort has been made to ensure that these data are accurate and reliable within the limits of the current state of the art, NOAA cannot assume liability for any damages caused by any errors or omissions in the data, nor as a result of the failure of the data to function on a particular system. NOAA makes no warranty, expressed or implied, nor does the fact of distribution constitute such a warranty.
+
+and
+
+> Copyright Notice
+>
+> As required by 17 U.S.C. 403, third parties producing copyrighted works consisting predominantly of the material produced by U.S. government agencies must provide notice with such work(s) identifying the U.S. Government material incorporated and stating that such material is not subject to copyright protection within the United States.
+
+Formal credit is specified as:
+
+> DOC/NOAA/NESDIS/NCEI > National Centers for Environmental Information, NESDIS, NOAA, U.S. Department of Commerce
+
+More details can be found on the ETOPO1 [about](https://www.ngdc.noaa.gov/mgg/global/global.html) page and [data sources](https://www.ngdc.noaa.gov/mgg/global/etopo1sources.html) page, and [description](https://www.ngdc.noaa.gov/docucomp/page?xml=NOAA/NESDIS/NGDC/MGG/DEM/iso/xml/316.xml&view=getDataView&header=none) page and [disclaimer](https://www.ngdc.noaa.gov/ngdcinfo/privacy.html#disclaimer) page.
+
+### Land Information New Zealand (LINZ)
+
+[Released](https://data.linz.govt.nz/layer/1768-nz-8m-digital-elevation-model-2012/) by [LINZ](https://data.linz.govt.nz/), licensed under [Creative Commons Attribution 3.0 New Zealand](https://data.linz.govt.nz/license/attribution-3-0-new-zealand/).
+
+Attribution statement:
+
+> Copyright 2011 Crown copyright (c) Land Information New Zealand and the New Zealand Government. All rights reserved
+
+### data.gov.uk LIDAR Composite Digital Terrain Model
+
+[Released](https://data.gov.uk/dataset/lidar-composite-dtm-2m1) by [data.gov.uk](https://data.gov.uk/), licensed under the United Kingdom [Open Government License version 3](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
+
+Attribution statement:
+
+> © Environment Agency copyright and/or database right 2015. All rights reserved.
+
+### data.gv.at Digitales Geländemodell (DGM) Österreich
+
+[Released](https://www.data.gv.at/katalog/dataset/b5de6975-417b-4320-afdb-eb2a9e2a1dbf) by Austria's [data.gv.at](https://www.data.gv.at/), licensed under [Creative Commons Namensnennung 3.0 Österreich](https://creativecommons.org/licenses/by/3.0/at/deed.de)
+
+Attribution statement:
+
+> © offene Daten Österreichs – Digitales Geländemodell (DGM) Österreich.
+
+### data.kartverket.no Digital terrengmodell
+
+[Released](http://data.kartverket.no/download/content/digital-terrengmodell-10-m-utm-33) by Austria's Kartverket, [licensed](http://www.kartverket.no/data/lisens/) under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/deed.no).
+
+Attribution statement:
+
+> © Kartverket
+
+### Arctic Digital Elevation Model (ArcticDEM)
+
+[Released](http://nga.maps.arcgis.com/apps/MapSeries/index.html?appid=cf2fba21df7540fb981f8836f2a97e25) without limitation. "ArcticDEM data is an unlicensed product and may be used, distributed, and modified without permission".
+
+Requested citation:
+
+> DEM(s) were created from DigitalGlobe, Inc., imagery and funded under National Science Foundation awards 1043681, 1559691, and 1542736.
+
+### Digital Terrain Model over Europe (EU-DEM)
+
+[Released](https://www.eea.europa.eu/data-and-maps/data/eu-dem#tab-metadata) by [European Environmental Agency](https://www.eea.europa.eu/).
+
+Attribution statement:
+
+> Produced using Copernicus data and information funded by the European Union - EU-DEM layers.
+
+### Canadian Digital Elevation Model (CDEM)
+
+[Released](http://ftp.geogratis.gc.ca/pub/nrcan_rncan/elevation/cdem_mnec/doc/CDEM_product_specs.pdf) under the [Open Government Licence Agreement for Unrestricted Use of Digital Data](http://open.canada.ca/en/open-government-licence-canada).
+
+Attribution statement:
+
+> Contains information licensed under the Open Government Licence – Canada.
+
+### National Institute of Statistics and Geography (INEGI)
+
+[Released](http://en.www.inegi.org.mx/temas/mapas/relieve/continental/) under Mexico's ["free use of information" license](http://en.www.inegi.org.mx/inegi/terminos.html).
+
+Attribution statement:
+
+> Source: INEGI, Continental relief, 2016
+
+### Digital Elevation Model (DEM) of Australia derived from LiDAR 5 Metre Grid
+
+[Released](https://ecat.ga.gov.au/geonetwork/srv/eng/search#!22be4b55-2465-4320-e053-10a3070a5236) by Australia's [Geoscience Australia](http://www.ga.gov.au/), licensed under [Creative Commons Attribution 4.0 International Licence](https://creativecommons.org/licenses/by/4.0/)
+
+Attribution statement:
+
+> © Commonwealth of Australia (Geoscience Australia) 2017.
+
+
+本次瓦片审计记录
+{"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3273/1636.png","zoom":12,"x":3273,"y":1636,"downloadedAt":"2026-09-29T09:46:12.522Z","lastModified":"Sun, 19 Nov 2017 20:23:14 GMT","sources":"srtm/N33E107.tif, srtm/N34E107.tif","sha256":"2cca1e0c7a7993b1ac5ccfb740d48f9aa71894ee6bd7e915181b2df2522834a6","bytes":63749}
+{"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3274/1636.png","zoom":12,"x":3274,"y":1636,"downloadedAt":"2026-09-29T09:46:13.809Z","lastModified":"Sun, 19 Nov 2017 20:23:18 GMT","sources":"srtm/N33E107.tif, srtm/N34E107.tif","sha256":"a8e2d12beb8d5dd74f5aa834df7d445ef2149271f9554a0b01b0d4c2c2da5520","bytes":58581}
+{"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3273/1637.png","zoom":12,"x":3273,"y":1637,"downloadedAt":"2026-09-29T09:46:14.098Z","lastModified":"Sun, 19 Nov 2017 20:23:16 GMT","sources":"srtm/N33E107.tif","sha256":"3eb605ce230980eadcee13d3525879f78ac89827b984d769102289b8aa0aef69","bytes":51551}
+{"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3274/1637.png","zoom":12,"x":3274,"y":1637,"downloadedAt":"2026-09-29T09:46:14.383Z","lastModified":"Sun, 19 Nov 2017 20:23:22 GMT","sources":"srtm/N33E107.tif","sha256":"d61e5d3f2a8f1f84628996228c727478de454536e11df76b737ef7ed6f14b6fc","bytes":59465}

@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, expect, test } from 'vitest';
 import { initPhysics, Walker, type WorldData } from './simulation';
-import { buildTerrain, sampleTerrain, trailX } from './terrain';
+import { buildTerrain, sampleTerrain, trailX, generateRocks, ROUTE_START_Z, ROUTE_END_Z } from './terrain';
 
 beforeAll(async () => { await initPhysics(); });
 const walkers: Walker[] = [];
@@ -84,8 +84,8 @@ test('长帧被限制，暂停时不补算积累时间，复位可用', () => {
   w.reset();
   expect(w.position.z).toBe(10);
 });
-test('沿测试地形上坡保持在地面之上', () => {
-  const t = buildTerrain(160, 80);
+test('沿真实地形上坡保持在地面之上', () => {
+  const t = buildTerrain();
   const z = 35, x = trailX(z);
   const w = make({ terrain: t, spawn: { x, z, y: sampleTerrain(t, x, z) } });
   for (let i = 0; i < 300; i++) w.advance(1 / 60, { x: 0, z: -1 });
@@ -93,3 +93,14 @@ test('沿测试地形上坡保持在地面之上', () => {
   expect(w.position.y - ground).toBeGreaterThan(0.8);
   expect(w.position.y - ground).toBeLessThan(1.05);
 });
+
+test('真实样段完整步行，无穿地和障碍阻断', () => {
+ const t=buildTerrain(),z=ROUTE_START_Z,x=trailX(z),w=make({terrain:t,obstacles:generateRocks(t),spawn:{x,z,y:sampleTerrain(t,x,z)}});
+ let samples=0;
+ for(let i=0;i<22000 && w.position.z>ROUTE_END_Z;i++){
+  const p=w.position,targetZ=Math.max(ROUTE_END_Z,p.z-2),dx=trailX(targetZ)-p.x,dz=targetZ-p.z,len=Math.hypot(dx,dz);
+  w.advance(1/60,{x:dx/len,z:dz/len});
+  if(i%120===0){const q=w.position,clearance=q.y-sampleTerrain(t,q.x,q.z);expect(clearance).toBeGreaterThan(.8);expect(clearance).toBeLessThan(1.3);samples++;}
+ }
+ expect(samples).toBeGreaterThan(100);expect(w.position.z).toBeLessThanOrEqual(ROUTE_END_Z+.1);
+},20000);

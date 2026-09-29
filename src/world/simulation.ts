@@ -23,22 +23,26 @@ export class Walker {
   private previous: Point;
   private current: Point;
   private origin: Point;
+  private recoveryFloor: number;
   distance = 0;
   grounded = false;
   boundaryReached = false;
 
   constructor(private data: WorldData) {
+    let lowest = Infinity;
+    for (let i = 1; i < data.terrain.positions.length; i += 3) lowest = Math.min(lowest, data.terrain.positions[i]);
+    this.recoveryFloor = lowest - 40;
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
     this.world.timestep = STEP;
     const environment = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     this.world.createCollider(RAPIER.ColliderDesc.trimesh(data.terrain.positions, data.terrain.indices, RAPIER.TriMeshFlags.FIX_INTERNAL_EDGES), environment);
     for (const r of data.obstacles) {
       const shape = r.shape === 'boulder'
-        ? RAPIER.ColliderDesc.convexHull(scaledRockVertices(r.hx, r.hy, r.hz))!
+        ? RAPIER.ColliderDesc.convexHull(scaledRockVertices(r.hx, r.hy, r.hz, r.variant))!
         : RAPIER.ColliderDesc.cuboid(r.hx, r.hy, r.hz);
       this.world.createCollider(shape
         .setTranslation(r.x, r.y, r.z)
-        .setRotation({ x: 0, y: Math.sin(r.rotation / 2), z: 0, w: Math.cos(r.rotation / 2) }), environment);
+        .setRotation(r.orientation ?? { x: 0, y: Math.sin(r.rotation / 2), z: 0, w: Math.cos(r.rotation / 2) }), environment);
     }
     this.origin = { x: data.spawn.x, y: data.spawn.y + HALF_HEIGHT + RADIUS + 0.025, z: data.spawn.z };
     this.body = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
@@ -93,7 +97,7 @@ export class Walker {
     const p = this.body.translation();
     this.current = { x: p.x, y: p.y, z: p.z };
     this.distance += Math.hypot(this.current.x - this.previous.x, this.current.z - this.previous.z);
-    if (!Number.isFinite(this.current.y) || this.current.y < -80) this.reset();
+    if (!Number.isFinite(this.current.y) || this.current.y < this.recoveryFloor) this.reset();
   }
   pause(): void {
     this.accumulator = 0; this.vx = 0; this.vz = 0;

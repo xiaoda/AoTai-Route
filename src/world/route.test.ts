@@ -1,15 +1,15 @@
 import { expect, test } from 'vitest';
 import { ROUTE, routeLength, pointAtDistance, projectToRoute, worldToMap } from './route';
-import { trailX } from './terrain';
+import { trailX, TERRAIN_SIZE, ROUTE_START_Z, ROUTE_END_Z } from './terrain';
 
 test('路径与场景步道同源，起终点及累计距离正确', () => {
-  expect(ROUTE[0]).toMatchObject({ x: trailX(62), z: 62, distance: 0 });
-  expect(ROUTE.at(-1)?.z).toBe(-116);
-  expect(routeLength).toBeGreaterThan(178);
+  expect(ROUTE[0]).toMatchObject({ x: trailX(ROUTE_START_Z), z: ROUTE_START_Z, distance: 0 });
+  expect(ROUTE.at(-1)?.z).toBe(ROUTE_END_Z);
+  expect(routeLength).toBeGreaterThan(ROUTE_START_Z - ROUTE_END_Z);
   for (let i = 1; i < ROUTE.length; i++) {
     expect(ROUTE[i].distance).toBeGreaterThan(ROUTE[i - 1].distance);
     expect(ROUTE[i].x).toBe(trailX(ROUTE[i].z));
-    expect(Math.abs(ROUTE[i].z)).toBeLessThan(137);
+    expect(Math.abs(ROUTE[i].z)).toBeLessThan(TERRAIN_SIZE / 2 - 3);
   }
 });
 test('距离采样连续，越界和非法输入返回安全端点', () => {
@@ -31,7 +31,7 @@ test('最近点投影可逆，离开路线仍保留偏移距离', () => {
 });
 test('地图北向上，中心与边界映射一致', () => {
   expect(worldToMap({ x: 0, z: 0 })).toEqual({ x: 120, y: 120 });
-  expect(worldToMap({ x: -140, z: -140 })).toEqual({ x: 16, y: 16 });
-  expect(worldToMap({ x: 140, z: 140 })).toEqual({ x: 224, y: 224 });
+  expect(worldToMap({ x: -TERRAIN_SIZE / 2, z: -TERRAIN_SIZE / 2 })).toEqual({ x: 16, y: 16 });
+  expect(worldToMap({ x: TERRAIN_SIZE / 2, z: TERRAIN_SIZE / 2 })).toEqual({ x: 224, y: 224 });
   expect(worldToMap({ x: 0, z: -50 }).y).toBeLessThan(120);
 });
