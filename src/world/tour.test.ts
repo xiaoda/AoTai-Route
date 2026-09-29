@@ -44,3 +44,19 @@ test('全路段视点相对实际三角网格保持指定高度且朝向有限',
   tour.seek(routeLength);
   expect(Number.isFinite(tour.pose(terrain, 10).yaw)).toBe(true);
 });
+
+test('无人操作时整段漫游基础朝向固定，不随路径左右弯曲而转动', () => {
+  const terrain = buildTerrain();
+  for (const fps of [30, 60, 144]) for (const speed of [3, 6, 12]) {
+    const tour = new AirTour();
+    while (!tour.complete) {
+      tour.advance(1 / fps, speed);
+      expect(tour.pose(terrain, 30).yaw).toBe(0);
+      expect(tour.pose(terrain, 10).yaw).toBe(0);
+    }
+    tour.seek(routeLength / 2);
+    expect(tour.pose(terrain, 30).yaw).toBe(0);
+    tour.reset();
+    expect(tour.pose(terrain, 30).yaw).toBe(0);
+  }
+});

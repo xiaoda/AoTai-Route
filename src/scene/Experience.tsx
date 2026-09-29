@@ -69,6 +69,7 @@ function WalkingScene(props: Props) {
       travel: latest.current.travel, tourDistance: tour.distance, telemetry: telemetry.current,
       position: latest.current.travel === 'air' ? { x: camera.position.x, y: camera.position.y, z: camera.position.z } : walker.current?.position,
       walkerPosition: walker.current?.position, keys: [...input.current.keys],
+      rotation: { pitch: camera.rotation.x, yaw: camera.rotation.y, roll: camera.rotation.z },
       locked: document.pointerLockElement === canvas,
     }) });
     return () => {
@@ -195,6 +196,7 @@ function WalkingScene(props: Props) {
       // 徒步平滑垂直跨阶、水平用物理插值；漫游缓动跟随地形，不添加滚转与晃动。
       if (firstPosition.current) { camera.position.y = eye.y; firstPosition.current = false; }
       if (p.mode === 'walking') camera.position.y += (eye.y + bob - camera.position.y) * (1 - Math.exp(-(p.travel === 'air' ? 4 : 18) * Math.min(delta, 0.1)));
+      // 漫游基础朝向固定；仅主动环顾/回正改变方向，地形和路线弯曲不改变俯仰或滚转。
       camera.rotation.set(input.current.pitch, input.current.yaw + (p.travel === 'air' ? airPose.yaw : 0), 0, 'YXZ');
     }
     const pos = p.travel === 'air' ? camera.position : w.position;
