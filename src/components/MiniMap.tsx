@@ -39,7 +39,7 @@ const MapBase = <>
   <circle cx={start.x} cy={start.y} r="3" fill="#e8eadd" />
   <circle cx={end.x} cy={end.y} r="4" fill="#243b32" stroke="#d9e29f" strokeWidth="1.5" />
   <text x={start.x + 32} y={start.y + 4}>起点</text><text x={end.x + 32} y={end.y + 4}>终点</text>
-  <circle cx={viewpoint.x} cy={viewpoint.y} r="4" fill="#c6a97b" /><text x={viewpoint.x + 10} y={viewpoint.y + 3}>石海观景点</text>
+  <circle cx={viewpoint.x} cy={viewpoint.y} r="4" fill="#c6a97b" /><text x={viewpoint.x + 10} y={viewpoint.y + 3}>石河 / 草甸</text>
   <path d="M204 50V30m-4 6 4-6 4 6" stroke="#d9e29f" fill="none" /><text x="200" y="24">北</text>
   <path d="M28 207v4h40.625v-4" stroke="#ced9c0" fill="none" /><text x="28" y="201">200 米</text>
 </>;

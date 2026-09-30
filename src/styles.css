@@ -207,11 +207,11 @@ input[type=checkbox]:checked::before { transform: translateX(16px); background: 
 
 /* 阶段 2：延续山野手记视觉，只增加克制的地貌与来源信息。 */
 .field-data{display:flex;flex-direction:column;gap:7px;margin:18px 0;color:#c8d2c0;font-size:11px;letter-spacing:.08em}.field-data strong{font-weight:400;color:#e5e4d7}.field-data a,.map-disclaimer a{color:inherit;text-underline-offset:3px}
-.landscape-caption{position:absolute;left:48px;top:126px;display:flex;flex-direction:column;gap:12px;pointer-events:none;text-shadow:0 1px 10px #19312866}.landscape-caption strong{font-family:"STSong","SimSun",serif;font-size:25px;font-weight:400;letter-spacing:.14em}.landscape-caption>span:last-child{font-size:11px;letter-spacing:.12em;color:#e1e5d6b3}
+.landscape-caption{position:absolute;left:48px;top:126px;display:flex;flex-direction:column;gap:12px;pointer-events:none;text-shadow:0 1px 10px #19312866}.landscape-caption strong{font-family:"STSong","SimSun",serif;font-size:25px;font-weight:400;letter-spacing:.14em}.landscape-caption>span:not(.eyebrow){font-size:11px;letter-spacing:.12em;color:#e1e5d6b3}
 .map-elevation{display:flex;align-items:baseline;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #e1e8c918;font-size:10px;color:#c3ceb7}.map-elevation strong{font-size:14px;color:#e7e9d8;font-weight:400}.map-elevation small{font-size:10px}.map-disclaimer{line-height:1.8}
 .app:has(.stats-panel) .landscape-caption{display:none}
 @media(max-height:800px){.landscape-caption{top:98px;gap:8px}.landscape-caption strong{font-size:20px}.field-data{margin:12px 0;gap:5px}.map-elevation{margin-top:6px;padding-top:6px}}
-@media(max-width:800px){.landscape-caption{left:24px;top:100px}.landscape-caption strong{font-size:18px}.landscape-caption>span:last-child{display:none}}
+@media(max-width:800px){.landscape-caption{left:24px;top:100px}.landscape-caption strong{font-size:18px}.landscape-caption>span:not(.eyebrow){display:none}}
 
 .tour-hold{display:flex;align-items:center;justify-content:space-between;gap:18px;width:100%;padding:12px 0 0;margin-top:12px;border:0;border-top:1px solid #dce5c922;background:none;color:#e3e8c8;font:inherit;font-size:12px;text-align:left;cursor:pointer}.tour-hold span{font-size:10px;color:#b7c3af}.tour-hold[aria-pressed="true"]{color:#d9e29f}
 
@@ -219,3 +219,10 @@ input[type=checkbox]:checked::before { transform: translateX(16px); background: 
 @media(max-height:800px) and (min-width:1000px){.travel-air .walking-bottom{bottom:214px}}
 
 .landscape-caption{padding:12px 24px 14px 14px;margin-left:-14px;background:linear-gradient(90deg,#173528a8,transparent);border-left:1px solid #d9e29f66}.journey-status,.walking-help{text-shadow:0 1px 5px #132b1ddd}
+
+/* 首视点返工：明确的主动入口，不在漫游途中强制切换镜头。 */
+.viewpoint-actions{display:flex;gap:8px;margin-top:18px;pointer-events:auto}.viewpoint-actions button{background:#d9e29f;color:#243427;padding:11px 12px;border:1px solid #d9e29f;border-radius:3px;font-size:12px;min-height:40px}.viewpoint-actions button+button{color:#e7edd7;background:#263e2ba8;border-color:#d9e29f66}.viewpoint-actions button:hover{background:#ebf0c8;color:#263626}.viewpoint-actions.compact{margin-top:3px}.viewpoint-actions.compact button{padding:7px 10px;font-size:11px;min-height:34px}
+
+.original-route{font-size:12px;margin-top:10px;padding:3px 0;color:#d9e4ce}
+
+@media(max-height:800px) and (min-width:1000px){.field-card{padding:20px}.field-card .route-sketch{height:100px}}

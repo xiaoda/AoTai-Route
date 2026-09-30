@@ -12,6 +12,8 @@ export const ROUTE: readonly RoutePoint[] = (() => {
   return points;
 })();
 export const VIEWPOINT = ROUTE.find(p => p.z === -64)!;
+/** 首视点是地貌参考驱动的艺术编排机位，不冒充原照片地理机位。 */
+export const VIEWPOINT_LOOK = { yaw: 1.05, footPitch: -0.22, airPitch: -0.43 } as const;
 export const routeLength = ROUTE.at(-1)!.distance;
 export const clampDistance = (d: number) => Number.isFinite(d) ? Math.max(0, Math.min(routeLength, d)) : 0;
 

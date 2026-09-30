@@ -104,3 +104,11 @@ test('真实样段完整步行，无穿地和障碍阻断', () => {
  }
  expect(samples).toBeGreaterThan(100);expect(w.position.z).toBeLessThanOrEqual(ROUTE_END_Z+.1);
 },20000);
+
+test('用户主动选择观景位置使用真实地面，复位仍返回原起点',()=>{
+ const w=make();w.moveToViewpoint(12,-8);
+ for(let i=0;i<30;i++)w.advance(1/60,{x:0,z:0});
+ expect(w.position.x).toBeCloseTo(12,2);expect(w.position.z).toBeCloseTo(-8,2);expect(w.grounded).toBe(true);expect(w.eyePosition.y).toBeCloseTo(1.7,1);
+ expect(()=>w.moveToViewpoint(NaN,0)).toThrow();expect(()=>w.moveToViewpoint(10000,0)).toThrow();
+ w.reset();expect(w.position.x).toBe(0);expect(w.position.z).toBe(10);
+});

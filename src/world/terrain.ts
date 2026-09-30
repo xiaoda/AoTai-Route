@@ -1,3 +1,4 @@
+import { habitatAt, stoneRiverCenter } from './habitat';
 import { DEM, elevationAt, ELEVATION_OFFSET, sampleElevationGrid } from './elevation';
 export interface MeshData { positions: Float32Array; indices: Uint32Array }
 export interface TerrainData extends MeshData {
@@ -54,18 +55,22 @@ export function surfaceOrientation(t: TerrainData, x: number, z: number, yaw = 0
  return {x:qx*c-qz*s,y:qw*s,z:qx*s+qz*c,w:qw*c};
 }
 export function generateRocks(t: TerrainData): Rock[] {
-  const rand = random(4301), rocks: Rock[] = [];
-  for (let i = 0; i < 1100; i++) {
-    const z = (rand() - 0.5) * Math.min(t.size - 10, 800);
-    const side = rand() < .5 ? -1 : 1;
-    const spread = i < 650 ? side * (4 + rand() ** 1.7 * 45) : (rand() - .5) * 300;
-    const x = t.size > 500 ? trailX(z) + spread : (rand() - .5) * (t.size - 10);
-    if (Math.abs(x) > t.size / 2 - 5 || Math.abs(x - trailX(z)) < 3.6) continue;
-    const s = 0.25 + rand() ** 2 * 1.55, hy = s * (0.3 + rand() * .48);
-    const rotation = rand() * Math.PI;
-    rocks.push({ x, y: sampleTerrain(t, x, z) + hy * .18, z, hx: s, hy, hz: s * (.65 + rand() * .75), rotation, orientation: surfaceOrientation(t,x,z,rotation), variant: Math.floor(rand() * 3), shape: 'boulder' });
-  }
-  return rocks;
+ const rand=random(4301),rocks:Rock[]=[];
+ const small=t.size<500;
+ for(let i=0;i<(small?1100:6500);i++){
+  const z=(rand()-.5)*Math.min(t.size-12,800);
+  const center=stoneRiverCenter(z);
+  const x=small?(rand()-.5)*(t.size-12):i<4700?center+(rand()-.5)*78:trailX(z)+(rand()-.5)*260;
+  if(Math.abs(x)>t.size/2-5)continue;
+  const h=sampleTerrain(t,x,z),dx=(sampleTerrain(t,x+1,z)-sampleTerrain(t,x-1,z))*.5,dz=(sampleTerrain(t,x,z+1)-sampleTerrain(t,x,z-1))*.5;
+  const cover=habitatAt(x,z,h+ELEVATION_OFFSET,1-1/Math.hypot(dx,1,dz));
+  if(!small&&rand()>cover.stone*.86+.025)continue;
+  const s=.45+rand()**1.8*1.65,hz=s*(.7+rand()*.65),hy=s*(.36+rand()*.45);
+  if(Math.abs(x-trailX(z))<2.3+Math.max(s,hz)*1.5)continue;
+  const rotation=rand()*Math.PI;
+  rocks.push({x,y:h+hy*.16,z,hx:s,hy,hz,rotation,orientation:surfaceOrientation(t,x,z,rotation),variant:Math.floor(rand()*3),shape:'boulder'});
+ }
+ return rocks;
 }
 
 /** 远景粗网格仅占近景外部。内边缘细分到近景步长，用三角扇缝合而非裙边遮洞。 */

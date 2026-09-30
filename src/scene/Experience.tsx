@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera, ACESFilmicToneMapping } from 'three';
+import { PerspectiveCamera, ACESFilmicToneMapping, PCFShadowMap } from 'three';
 import Landscape from './Landscape';
-import { buildTerrain, generateRocks, sampleTerrain, trailX, ROUTE_START_Z } from '../world/terrain';
+import { buildTerrain, generateRocks, sampleTerrain, trailX, ROUTE_START_Z, terrainHeight } from '../world/terrain';
 import { initPhysics, Walker } from '../world/simulation';
 import { isMovementKey, movement, turn, type InputState } from '../core/input';
 import type { Settings } from '../core/settings';
 import { AirTour, type TravelMode } from '../world/tour';
-import { projectToRoute } from '../world/route';
+import { projectToRoute, VIEWPOINT, VIEWPOINT_LOOK } from '../world/route';
 
 export type Mode = 'intro' | 'walking' | 'paused';
 export interface Telemetry {
@@ -20,7 +20,7 @@ export interface Stats {
   x: number; y: number; z: number; renderer: string;
 }
 interface Props {
-  mode: Mode; settings: Settings; resetToken: number; travel: TravelMode;
+  mode: Mode; settings: Settings; resetToken: number; travel: TravelMode; viewpointToken: number;
   cruising: boolean; speed: number; altitude: number; recenterToken: number; replayToken: number;
   onReady(): void; onPause(): void; onError(message: string): void;
   onStats(stats: Stats): void; onInputMode(locked: boolean): void;
@@ -43,6 +43,7 @@ function WalkingScene(props: Props) {
   const diagnostic = useRef<Stats | null>(null);
   const firstPosition = useRef(true);
   const lastReset = useRef(props.resetToken);
+  const lastViewpoint = useRef(0);
   const renderer = useRef('WebGL2');
 
   useEffect(() => {
@@ -174,9 +175,16 @@ function WalkingScene(props: Props) {
       input.current.yaw = 0; input.current.pitch = p.altitude === 30 ? -0.42 : -0.25;
       firstPosition.current = true; lastReplay.current = p.replayToken; forceTelemetry = true;
     }
+    if (lastViewpoint.current !== p.viewpointToken) {
+      if(p.travel==='air')tour.seek(VIEWPOINT.distance);
+      else {w.moveToViewpoint(VIEWPOINT.x,VIEWPOINT.z);for(let i=0;i<20;i++)w.advance(1/60,{x:0,z:0});}
+      input.current.keys.clear();input.current.yaw=VIEWPOINT_LOOK.yaw;input.current.pitch=p.travel==='air'?VIEWPOINT_LOOK.airPitch:VIEWPOINT_LOOK.footPitch;
+      if(p.travel==='foot')footLook.current={yaw:input.current.yaw,pitch:input.current.pitch};
+      firstPosition.current=true;completionSent.current=false;forceTelemetry=true;lastViewpoint.current=p.viewpointToken;
+    }
     if (p.mode === 'intro') {
-      camera.position.set(-285, sampleTerrain(terrain, -285, -40) + 28, -40);
-      camera.lookAt(-380, 430, -1800);
+      camera.position.set(VIEWPOINT.x, sampleTerrain(terrain, VIEWPOINT.x, VIEWPOINT.z) + 30, VIEWPOINT.z);
+      camera.rotation.set(VIEWPOINT_LOOK.airPitch,VIEWPOINT_LOOK.yaw,0,'YXZ');
     } else {
       if (p.mode === 'walking') {
         const dt = Math.min(delta, 0.1), keys = input.current.keys;
@@ -229,11 +237,11 @@ function WalkingScene(props: Props) {
 }
 
 export default function Experience(props: Props) {
-  return <Canvas
+  return <Canvas shadows={{ type: PCFShadowMap }}
     camera={{ fov: props.settings.fov, near: 0.15, far: 7500 }}
     dpr={props.settings.quality === 'eco' ? 0.75 : 1}
     gl={{ antialias: true, powerPreference: 'default', alpha: false }}
-    onCreated={({ gl }) => { gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1.08; }}
+    onCreated={({ gl, camera }) => { gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1.08; camera.position.set(VIEWPOINT.x,terrainHeight(VIEWPOINT.x,VIEWPOINT.z)+30,VIEWPOINT.z);camera.rotation.set(VIEWPOINT_LOOK.airPitch,VIEWPOINT_LOOK.yaw,0,'YXZ'); }}
     fallback={<span>三维交互区域：需要 WebGL2。使用 WASD 移动，方向键转头，Esc 暂停。</span>}
   ><WalkingScene {...props} /></Canvas>;
 }

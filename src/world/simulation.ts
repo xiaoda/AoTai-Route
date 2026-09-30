@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { type Rock, type TerrainData } from './terrain';
+import { type Rock, type TerrainData, sampleTerrain } from './terrain';
 import { scaledRockVertices } from './rockShape';
 
 export interface Point { x: number; y: number; z: number }
@@ -102,6 +102,13 @@ export class Walker {
   pause(): void {
     this.accumulator = 0; this.vx = 0; this.vz = 0;
     this.previous = { ...this.current };
+  }
+  /** 仅由用户明确选择视点触发；Y 始终来自当前碰撞网格。原起点不改变。 */
+  moveToViewpoint(x:number,z:number):void {
+    if(!Number.isFinite(x)||!Number.isFinite(z)||Math.max(Math.abs(x),Math.abs(z))>this.data.terrain.size/2-3)throw new Error('观景点超出可行走范围');
+    this.pause();this.velocityY=0;this.distance=0;this.grounded=false;this.boundaryReached=false;
+    const p={x,y:sampleTerrain(this.data.terrain,x,z)+HALF_HEIGHT+RADIUS+.025,z};
+    this.current={...p};this.previous={...p};this.body.setTranslation(p,true);this.body.setNextKinematicTranslation(p);this.world.step();
   }
   reset(): void {
     this.pause(); this.velocityY = 0; this.distance = 0; this.grounded = false;
