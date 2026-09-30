@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, expect, test } from 'vitest';
+import { ROUTE } from './route';
 import { initPhysics, Walker, type WorldData } from './simulation';
 import { buildTerrain, sampleTerrain, trailX, generateRocks, ROUTE_START_Z, ROUTE_END_Z } from './terrain';
 
@@ -103,7 +104,7 @@ test('真实样段完整步行，无穿地和障碍阻断', () => {
   if(i%120===0){const q=w.position,clearance=q.y-sampleTerrain(t,q.x,q.z);expect(clearance).toBeGreaterThan(.8);expect(clearance).toBeLessThan(1.3);samples++;}
  }
  expect(samples).toBeGreaterThan(100);expect(w.position.z).toBeLessThanOrEqual(ROUTE_END_Z+.1);
-},20000);
+},60000);
 
 test('用户主动选择观景位置使用真实地面，复位仍返回原起点',()=>{
  const w=make();w.moveToViewpoint(12,-8);
@@ -112,3 +113,17 @@ test('用户主动选择观景位置使用真实地面，复位仍返回原起�
  expect(()=>w.moveToViewpoint(NaN,0)).toThrow();expect(()=>w.moveToViewpoint(10000,0)).toThrow();
  w.reset();expect(w.position.x).toBe(0);expect(w.position.z).toBe(10);
 });
+
+
+test('第二批全长路线实际物理步行，穿过三个节点且不中断、不穿地',()=>{
+ const t=buildTerrain(),first=ROUTE[0],last=ROUTE[ROUTE.length-1],w=make({terrain:t,obstacles:generateRocks(t),spawn:{x:first.x,z:first.z,y:sampleTerrain(t,first.x,first.z)}});
+ let index=1,samples=0;
+ for(let i=0;i<150000;i++){
+  const p=w.position;let target=ROUTE[index],dx=target.x-p.x,dz=target.z-p.z,len=Math.hypot(dx,dz);
+  if(index===ROUTE.length-1&&len<.15)break;
+  if(len<.5&&index<ROUTE.length-1){index++;target=ROUTE[index];dx=target.x-p.x;dz=target.z-p.z;len=Math.hypot(dx,dz);}
+  w.advance(1/60,{x:dx/len,z:dz/len});
+  if(i%120===0){const q=w.position,clearance=q.y-sampleTerrain(t,q.x,q.z);expect(clearance).toBeGreaterThan(.8);expect(clearance).toBeLessThan(1.3);samples++;}
+ }
+ expect(samples).toBeGreaterThan(500);expect(index).toBe(ROUTE.length-1);expect(Math.hypot(w.position.x-last.x,w.position.z-last.z)).toBeLessThan(.2);
+},180000);

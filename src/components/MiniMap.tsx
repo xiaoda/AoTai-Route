@@ -1,6 +1,6 @@
 import type { Telemetry } from '../scene/Experience';
 import type { TravelMode } from '../world/tour';
-import { ROUTE, VIEWPOINT, pointAtDistance, routeLength, worldToMap } from '../world/route';
+import { ROUTE, VIEWPOINTS, pointAtDistance, routeLength, routeMetrics, worldToMap } from '../world/route';
 import { TERRAIN_SIZE, terrainHeight } from '../world/terrain';
 import { ELEVATION_OFFSET } from '../world/elevation';
 
@@ -8,7 +8,7 @@ const line = (points: readonly { x: number; z: number }[]) => points.map((p, i) 
   const m = worldToMap(p); return `${i ? 'L' : 'M'}${m.x.toFixed(2)},${m.y.toFixed(2)}`;
 }).join(' ');
 const routePath = line(ROUTE);
-const viewpoint = worldToMap(VIEWPOINT);
+const scaleMetres=400,scalePixels=scaleMetres/TERRAIN_SIZE*208;
 const start = worldToMap(ROUTE[0]), end = worldToMap(ROUTE.at(-1)!);
 // 从已打包 DEM 同源生成的 40 米等高线；路径仍为虚拟编排，不是现实导航。
 function contours() {
@@ -38,10 +38,10 @@ const MapBase = <>
   <path d={routePath} fill="none" stroke="#e8eadd" strokeOpacity=".48" strokeWidth="2" strokeDasharray="3 4" />
   <circle cx={start.x} cy={start.y} r="3" fill="#e8eadd" />
   <circle cx={end.x} cy={end.y} r="4" fill="#243b32" stroke="#d9e29f" strokeWidth="1.5" />
-  <text x={start.x + 32} y={start.y + 4}>起点</text><text x={end.x + 32} y={end.y + 4}>终点</text>
-  <circle cx={viewpoint.x} cy={viewpoint.y} r="4" fill="#c6a97b" /><text x={viewpoint.x + 10} y={viewpoint.y + 3}>石河 / 草甸</text>
+  <text x={start.x+9} y={start.y+4}>起</text><text x={end.x+10} y={end.y-2}>终</text>
+  {VIEWPOINTS.map(p=>{const m=worldToMap(p);return <g key={p.id}><circle cx={m.x} cy={m.y} r="3.5" fill="#c6a97b"/><text x={m.x+8} y={m.y+3}>{p.shortName}</text></g>;})}
   <path d="M204 50V30m-4 6 4-6 4 6" stroke="#d9e29f" fill="none" /><text x="200" y="24">北</text>
-  <path d="M28 207v4h40.625v-4" stroke="#ced9c0" fill="none" /><text x="28" y="201">200 米</text>
+  <path d={'M158 207v4h'+scalePixels+'v-4'} stroke="#ced9c0" fill="none" /><text x="158" y="201">{scaleMetres} 米</text>
 </>;
 
 export default function MiniMap({ telemetry: t, travel }: { telemetry: Telemetry; travel: TravelMode }) {
@@ -60,6 +60,7 @@ export default function MiniMap({ telemetry: t, travel }: { telemetry: Telemetry
         <circle r="3" fill="#f0f4cb" stroke="#1b3428" strokeWidth="1" />
       </g>
     </svg>
+    <p className="map-route-length">水平 {(routeLength/1000).toFixed(2)} 公里 · 3 处观景<span>贴地 {(routeMetrics.groundLength/1000).toFixed(2)} 公里 · ↑{routeMetrics.ascent.toFixed(0)} ↓{routeMetrics.descent.toFixed(0)} 米</span></p>
     <div className="map-progress"><span>{travel === 'air' ? (t.complete ? '已到达终点' : '漫游进度') : '最近路段位置'}</span><strong>{percent}<small>%</small></strong></div>
     <div className="map-progress-track"><span style={{ width: `${percent}%` }} /></div>
     <p>{travel === 'air' ? `剩余 ${Math.max(0, routeLength - t.routeDistance).toFixed(0)} 米 · 视线方向随箭头` : `距路径 ${t.routeOffset.toFixed(0)} 米 · 箭头为视线方向`}</p>

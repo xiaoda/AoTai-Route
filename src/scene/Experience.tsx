@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, ACESFilmicToneMapping, PCFShadowMap } from 'three';
 import Landscape from './Landscape';
-import { buildTerrain, generateRocks, sampleTerrain, trailX, ROUTE_START_Z, terrainHeight } from '../world/terrain';
+import { buildTerrain, generateRocks, sampleTerrain, terrainHeight } from '../world/terrain';
 import { initPhysics, Walker } from '../world/simulation';
 import { isMovementKey, movement, turn, type InputState } from '../core/input';
 import type { Settings } from '../core/settings';
 import { AirTour, type TravelMode } from '../world/tour';
-import { projectToRoute, VIEWPOINT, VIEWPOINT_LOOK } from '../world/route';
+import { projectToRoute, VIEWPOINT, VIEWPOINT_LOOK, VIEWPOINTS, ROUTE } from '../world/route';
 
 export type Mode = 'intro' | 'walking' | 'paused';
 export interface Telemetry {
@@ -20,7 +20,7 @@ export interface Stats {
   x: number; y: number; z: number; renderer: string;
 }
 interface Props {
-  mode: Mode; settings: Settings; resetToken: number; travel: TravelMode; viewpointToken: number;
+  mode: Mode; settings: Settings; resetToken: number; travel: TravelMode; viewpointToken: number; viewpointIndex: number;
   cruising: boolean; speed: number; altitude: number; recenterToken: number; replayToken: number;
   onReady(): void; onPause(): void; onError(message: string): void;
   onStats(stats: Stats): void; onInputMode(locked: boolean): void;
@@ -50,7 +50,7 @@ function WalkingScene(props: Props) {
     let cancelled = false;
     initPhysics().then(() => {
       if (cancelled) return;
-      const z = ROUTE_START_Z, x = trailX(z);
+      const {x,z}=ROUTE[0];
       walker.current = new Walker({ terrain, obstacles: rocks, spawn: { x, y: sampleTerrain(terrain, x, z), z } });
       // 先让胶囊稳定落地，再通知 UI 可进入。
       for (let i = 0; i < 20; i++) walker.current.advance(1 / 60, { x: 0, z: 0 });
@@ -176,9 +176,10 @@ function WalkingScene(props: Props) {
       firstPosition.current = true; lastReplay.current = p.replayToken; forceTelemetry = true;
     }
     if (lastViewpoint.current !== p.viewpointToken) {
-      if(p.travel==='air')tour.seek(VIEWPOINT.distance);
-      else {w.moveToViewpoint(VIEWPOINT.x,VIEWPOINT.z);for(let i=0;i<20;i++)w.advance(1/60,{x:0,z:0});}
-      input.current.keys.clear();input.current.yaw=VIEWPOINT_LOOK.yaw;input.current.pitch=p.travel==='air'?VIEWPOINT_LOOK.airPitch:VIEWPOINT_LOOK.footPitch;
+      const viewpoint=VIEWPOINTS[p.viewpointIndex]??VIEWPOINT;
+      if(p.travel==='air')tour.seek(viewpoint.distance);
+      else {w.moveToViewpoint(viewpoint.x,viewpoint.z);for(let i=0;i<20;i++)w.advance(1/60,{x:0,z:0});}
+      input.current.keys.clear();input.current.yaw=viewpoint.yaw;input.current.pitch=p.travel==='air'?viewpoint.airPitch:viewpoint.footPitch;
       if(p.travel==='foot')footLook.current={yaw:input.current.yaw,pitch:input.current.pitch};
       firstPosition.current=true;completionSent.current=false;forceTelemetry=true;lastViewpoint.current=p.viewpointToken;
     }

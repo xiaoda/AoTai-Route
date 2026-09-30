@@ -226,3 +226,12 @@ input[type=checkbox]:checked::before { transform: translateX(16px); background: 
 .original-route{font-size:12px;margin-top:10px;padding:3px 0;color:#d9e4ce}
 
 @media(max-height:800px) and (min-width:1000px){.field-card{padding:20px}.field-card .route-sketch{height:100px}}
+
+/* 连续山野手记：节点是主动入口，不强制转头。 */
+.field-route-facts{display:flex;align-items:end;justify-content:space-between;margin:20px 0;color:#d9e29f}.field-route-facts strong{font:38px Georgia,serif}.field-route-facts small{display:block;font:10px "Microsoft YaHei",sans-serif;color:#d7e0d4;margin-top:3px}.field-route-facts>span{font-size:10px;padding-bottom:3px;color:#d7e0d4}
+.node-picker{display:flex;flex-direction:column;gap:7px;margin-top:16px;pointer-events:auto}.node-picker button{display:flex;align-items:center;gap:10px;padding:10px 8px;background:#162a2459;color:#eef1dc;border:1px solid #d9e29f30;text-align:left;border-radius:3px;font-size:12px;min-height:40px}.node-picker button:hover,.node-picker button[aria-pressed=true]{background:#d9e29f22;border-color:#d9e29f8a}.node-picker .node-number{font:12px Georgia,serif;color:#d9e29f}.node-picker small{margin-left:auto;font-size:10px;color:#c5d0bd}.node-picker.compact{flex-direction:row;gap:5px;margin-top:4px}.node-picker.compact button{padding:6px 9px;gap:6px;min-height:32px;font-size:11px}.landscape-caption .node-picker{max-width:300px}.mini-map .map-route-length{color:#d9e29fb8;font-size:10px;margin:3px 0 6px}
+@media(max-height:800px) and (min-width:1000px){.field-card{bottom:16%}.field-route-facts{margin:12px 0}.node-picker:not(.compact){margin-top:12px;gap:5px}.node-picker:not(.compact) button{padding:8px 7px;min-height:36px}.field-card-foot{margin-top:16px}}
+
+.node-description{max-width:230px;margin:0 0 14px;font-size:11px;line-height:1.8;color:var(--muted)}
+
+.map-route-length span{display:block;margin-top:4px;opacity:.78;font-size:10px}

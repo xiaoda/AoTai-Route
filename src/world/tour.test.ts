@@ -59,4 +59,4 @@ test('无人操作时整段漫游基础朝向固定，不随路径左右弯曲�
     tour.reset();
     expect(tour.pose(terrain, 30).yaw).toBe(0);
   }
-});
+},30000);

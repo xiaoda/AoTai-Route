@@ -1,4 +1,6 @@
 import { habitatAt, stoneRiverCenter } from './habitat';
+import {legacyTrailX as trailX} from './journey';
+import {pathClearance,pointAtDistance,routeLength} from './route';
 import { DEM, elevationAt, ELEVATION_OFFSET, sampleElevationGrid } from './elevation';
 export interface MeshData { positions: Float32Array; indices: Uint32Array }
 export interface TerrainData extends MeshData {
@@ -14,9 +16,8 @@ export interface Rock {
   orientation?: { x: number; y: number; z: number; w: number };
 }
 export const TERRAIN_SIZE = DEM.near.size;
-export const ROUTE_START_Z = 60, ROUTE_END_Z = -320;
-/** 原创虚拟观景路径，未导入 GPS，不修改 DEM 来削平坡道。 */
-export const trailX = (z: number) => -300 + 18 * Math.sin(z * 0.009);
+// 仅为保留已验收中段生成序列的兼容导出；新路线唯一配置在 journey/route。
+export {LEGACY_START_Z as ROUTE_START_Z,LEGACY_END_Z as ROUTE_END_Z,legacyTrailX as trailX} from './journey';
 export const terrainHeight = (x: number, z: number) => elevationAt(x, z) - ELEVATION_OFFSET;
 export function buildTerrain(size = TERRAIN_SIZE, segments = DEM.near.segments, height = terrainHeight): TerrainData {
   const positions = new Float32Array((segments + 1) ** 2 * 3);
@@ -54,14 +55,14 @@ export function surfaceOrientation(t: TerrainData, x: number, z: number, yaw = 0
  const qx=ax/qLength,qz=az/qLength,qw=w/qLength,c=Math.cos(yaw/2),s=Math.sin(yaw/2);
  return {x:qx*c-qz*s,y:qw*s,z:qx*s+qz*c,w:qw*c};
 }
-export function generateRocks(t: TerrainData): Rock[] {
+export function generateLegacyRocks(t: TerrainData): Rock[] {
  const rand=random(4301),rocks:Rock[]=[];
  const small=t.size<500;
  for(let i=0;i<(small?1100:6500);i++){
   const z=(rand()-.5)*Math.min(t.size-12,800);
   const center=stoneRiverCenter(z);
   const x=small?(rand()-.5)*(t.size-12):i<4700?center+(rand()-.5)*78:trailX(z)+(rand()-.5)*260;
-  if(Math.abs(x)>t.size/2-5)continue;
+  if(Math.abs(x)>Math.min(t.size,1024)/2-5)continue;
   const h=sampleTerrain(t,x,z),dx=(sampleTerrain(t,x+1,z)-sampleTerrain(t,x-1,z))*.5,dz=(sampleTerrain(t,x,z+1)-sampleTerrain(t,x,z-1))*.5;
   const cover=habitatAt(x,z,h+ELEVATION_OFFSET,1-1/Math.hypot(dx,1,dz));
   if(!small&&rand()>cover.stone*.86+.025)continue;
@@ -71,6 +72,22 @@ export function generateRocks(t: TerrainData): Rock[] {
   rocks.push({x,y:h+hy*.16,z,hx:s,hy,hz,rotation,orientation:surfaceOrientation(t,x,z,rotation),variant:Math.floor(rand()*3),shape:'boulder'});
  }
  return rocks;
+}
+
+/** 中段原生成序列保留，两端使用独立种子增补；先生成再排除统一路线，避免串扰随机序列。 */
+export function generateRocks(t:TerrainData):Rock[]{
+ const base=generateLegacyRocks(t);if(t.size<500)return base;
+ const rocks=base.filter(r=>pathClearance(r.x,r.z)>2.3+Math.max(r.hx,r.hz)*1.5),rand=random(920301);
+ for(let i=0;i<18000;i++){
+  const d=rand()*routeLength,p=pointAtDistance(d),a=pointAtDistance(d-1),b=pointAtDistance(d+1),len=Math.hypot(b.x-a.x,b.z-a.z),offset=(rand()-.5)*330;
+  const x=p.x-(b.z-a.z)/len*offset,z=p.z+(b.x-a.x)/len*offset;
+  if(Math.max(Math.abs(x),Math.abs(z))>t.size/2-6||(z>-400&&z<400&&Math.abs(x-trailX(z))<160))continue;
+  const h=sampleTerrain(t,x,z),dx=(sampleTerrain(t,x+1,z)-sampleTerrain(t,x-1,z))*.5,dz=(sampleTerrain(t,x,z+1)-sampleTerrain(t,x,z-1))*.5,cover=habitatAt(x,z,h+ELEVATION_OFFSET,1-1/Math.hypot(dx,1,dz));
+  if(rand()>cover.stone*.80+.035)continue;
+  const s=(.45+rand()**1.8*1.65)*(z<-500?1.12:.85),hz=s*(.7+rand()*.65),hy=s*(.36+rand()*.45);
+  if(pathClearance(x,z)<2.5+Math.max(s,hz)*1.6)continue;
+  const rotation=rand()*Math.PI;rocks.push({x,y:h+hy*.16,z,hx:s,hy,hz,rotation,orientation:surfaceOrientation(t,x,z,rotation),variant:Math.floor(rand()*3),shape:'boulder'});
+ }return rocks;
 }
 
 /** 远景粗网格仅占近景外部。内边缘细分到近景步长，用三角扇缝合而非裙边遮洞。 */

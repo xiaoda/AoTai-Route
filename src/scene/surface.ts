@@ -1,6 +1,7 @@
 import { DataTexture, RGBAFormat, RepeatWrapping, LinearFilter, LinearMipmapLinearFilter, MeshStandardMaterial } from 'three';
 import { habitatAt, smooth } from '../world/habitat';
-import { sampleTerrain, type TerrainData, trailX } from '../world/terrain';
+import { sampleTerrain, type TerrainData } from '../world/terrain';
+import { pathClearance } from '../world/route';
 import { ELEVATION_OFFSET, elevationAt, DEM } from '../world/elevation';
 
 /** 原创材质细节，非摄影扫描；通道分别为岩石、草甸与土壤的细节高度。 */
@@ -26,12 +27,12 @@ export function createSurfaceTextures(terrain: TerrainData) {
  }
  const detail=new DataTexture(bytes,n,n,RGBAFormat);detail.wrapS=detail.wrapT=RepeatWrapping;detail.magFilter=LinearFilter;detail.minFilter=LinearMipmapLinearFilter;detail.generateMipmaps=true;detail.anisotropy=4;detail.needsUpdate=true;
  const createCover=(worldSize:number,near:boolean)=>{
-  const size=512,map=new Uint8Array(size*size*4),step=worldSize/(size-1),half=worldSize/2;
+  const size=near?1024:512,map=new Uint8Array(size*size*4),step=worldSize/(size-1),half=worldSize/2;
   const sample=(x:number,z:number)=>near?sampleTerrain(terrain,x,z):elevationAt(Math.max(-half,Math.min(half,x)),Math.max(-half,Math.min(half,z)))-ELEVATION_OFFSET;
   for(let j=0;j<size;j++)for(let i=0;i<size;i++){
    const x=i*step-half,z=j*step-half,h=sample(x,z),dx=(sample(x+2,z)-sample(x-2,z))*.25,dz=(sample(x,z+2)-sample(x,z-2))*.25;
    const f=habitatAt(x,z,h+ELEVATION_OFFSET,1-1/Math.hypot(dx,1,dz)),k=(j*size+i)*4;
-   const path=near?(1-smooth(.7,1.6,Math.abs(x-trailX(z))))*smooth(-324,-318,z)*(1-smooth(58,64,z)):0;
+   const path=near?1-smooth(.7,1.6,pathClearance(x,z)):0;
    map[k]=Math.round(f.stone*255);map[k+1]=Math.round(f.meadow*255);map[k+2]=Math.round(path*255);map[k+3]=255;
   }
   const t=new DataTexture(map,size,size,RGBAFormat);t.magFilter=LinearFilter;t.minFilter=LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;

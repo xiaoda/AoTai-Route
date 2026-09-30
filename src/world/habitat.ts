@@ -16,7 +16,12 @@ export function habitatAt(x:number,z:number,elevation:number,slope:number) {
  const ribbon=1-smooth(18,43,Math.abs(x-stoneRiverCenter(z))+(detail-.5)*9);
  const extent=1-smooth(340,520,Math.abs(z));
  const bare=smooth(.08,.28,slope)*(.65+.35*fieldNoise(x*.014,z*.004)),summit=smooth(3730,3790,elevation)*.36;
- const stone=clamp01(Math.max(ribbon*extent*.96,bare,smooth(.4,.75,slope),.06+summit+(1-smooth(.20,.4,patch))*.18));
+ let stone=clamp01(Math.max(ribbon*extent*.96,bare,smooth(.4,.75,slope),.06+summit+(1-smooth(.20,.4,patch))*.18));
+ // 新节点区域独立渐变，旧石河及植被候选范围（Z=-400..400）不变。
+ const ridge=(1-smooth(.6,1.25,Math.hypot((x+650)/220,(z-560)/300)))*smooth(400,470,z);
+ const exposed=(1-smooth(.6,1.25,Math.hypot((x-130)/210,(z+810)/270)))*(1-smooth(-570,-450,z));
+ stone=stone*(1-ridge*.55);
+ stone=Math.max(stone,exposed*(.70+.22*fieldNoise(x*.025,z*.016)));
  const soil=(1-stone)*(.035+detail*.045);
  return {stone,soil,meadow:1-stone-soil};
 }

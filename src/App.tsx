@@ -2,7 +2,7 @@ import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, ty
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from './core/settings';
 import type { Mode, Stats, Telemetry } from './scene/Experience';
 import type { TravelMode } from './world/tour';
-import { ROUTE, routeLength, VIEWPOINT } from './world/route';
+import { ROUTE, routeLength, VIEWPOINTS, routeMetrics, chapterAtDistance } from './world/route';
 import MiniMap from './components/MiniMap';
 
 const Experience = lazy(() => import('./scene/Experience'));
@@ -13,12 +13,8 @@ function MountainMark() {
 }
 function Arrow() { return <svg width="22" height="18" viewBox="0 0 22 18" fill="none" aria-hidden="true"><path d="M1 9h18m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" /></svg>; }
 function Gear() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-7 0v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>; }
-function RouteSketch() {
-  return <svg className="route-sketch" viewBox="0 0 280 170" fill="none" aria-hidden="true">
-    {[0, 1, 2, 3, 4, 5].map(i => <path key={i} d={`M${-10 + i * 8} 155 C 48 ${100 - i * 14}, 32 ${45 - i * 5}, 122 ${43 + i * 7} S 203 ${136 - i * 7}, 291 ${20 + i * 6}`} stroke="currentColor" opacity={0.12 + i * 0.035} />)}
-    <path d="M49 144C118 127 79 96 139 86S146 61 190 28" stroke="#d9e29f" strokeWidth="1.8" strokeDasharray="3 6" />
-    <circle cx="49" cy="144" r="4" fill="#d9e29f" /><circle cx="190" cy="28" r="5" stroke="#d9e29f" />
-  </svg>;
+function ViewpointButtons({onSelect,selected=-1,disabled=false,compact=false}:{onSelect(index:number):void;selected?:number;disabled?:boolean;compact?:boolean}){
+ return <nav className={'node-picker'+(compact?' compact':'')} aria-label="观景节点">{VIEWPOINTS.map((p,i)=><button key={p.id} disabled={disabled} aria-pressed={selected===i} onClick={()=>onSelect(i)}><span className="node-number">0{i+1}</span><span>{compact?p.shortName:p.name}</span>{!compact&&<small>{(p.distance/1000).toFixed(2)} km ↗</small>}</button>)}</nav>;
 }
 class SceneBoundary extends Component<{ children: ReactNode; onError(message: string): void }, { failed: boolean }> {
   state = { failed: false };
@@ -35,7 +31,7 @@ export default function App() {
   const [telemetry, setTelemetry] = useState(INITIAL_TELEMETRY);
   const [recenterToken, setRecenterToken] = useState(0), [arrived, setArrived] = useState(false);
   const [replayToken, setReplayToken] = useState(0);
-  const [viewpointToken,setViewpointToken]=useState(0);
+  const [viewpointToken,setViewpointToken]=useState(0),[viewpointIndex,setViewpointIndex]=useState(1);
   const [ready, setReady] = useState(false), [error, setError] = useState('');
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -67,11 +63,11 @@ export default function App() {
       result?.catch(() => { setLocked(false); setNotice('鼠标未锁定：按住画面拖动，或使用方向键转头。'); });
     } catch { setLocked(false); setNotice('可按住画面拖动，或使用方向键转头。'); }
   };
-  const openViewpoint=(next:TravelMode)=>{
+  const openViewpoint=(next:TravelMode,index=1)=>{
     if(!ready||error)return;
     if(document.pointerLockElement)document.exitPointerLock();
-    setTravel(next);setAltitude(30);setCruising(false);setArrived(false);setMode('walking');setViewpointToken(t=>t+1);
-    setNotice(next==='air'?'已到首个返工视点并驻足；可拖动环顾，继续前进仍沿原样段。':'已站到首个视点；可用 WASD 行走、拖动或方向键环顾。');
+    setTravel(next);setAltitude(30);setCruising(false);setArrived(false);setMode('walking');setViewpointIndex(index);setViewpointToken(t=>t+1);
+    setNotice('已到 '+VIEWPOINTS[index].name+(next==='air'?'，当前位置驻足。继续前进将沿完整样段。':'。WASD 行走，拖动或方向键环顾。'));
     document.querySelector('canvas')?.focus();
   };
   const openSettings = () => { pause(); setSettingsOpen(true); };
@@ -103,7 +99,7 @@ export default function App() {
   return <main className={`app mode-${mode} travel-${travel}`}>
     <div className="scene-layer">
       <SceneBoundary onError={onError}><Suspense fallback={<div className="scene-loading">正在准备山野…</div>}>
-        <Experience viewpointToken={viewpointToken} mode={mode} settings={settings} resetToken={resetToken} replayToken={replayToken} travel={travel} cruising={cruising} speed={speed} altitude={altitude} recenterToken={recenterToken} onTelemetry={setTelemetry} onComplete={onComplete} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
+        <Experience viewpointIndex={viewpointIndex} viewpointToken={viewpointToken} mode={mode} settings={settings} resetToken={resetToken} replayToken={replayToken} travel={travel} cruising={cruising} speed={speed} altitude={altitude} recenterToken={recenterToken} onTelemetry={setTelemetry} onComplete={onComplete} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
       </Suspense></SceneBoundary>
     </div>
     <div className="scene-shade" aria-hidden="true" />
@@ -111,7 +107,7 @@ export default function App() {
       <div className="brand"><MountainMark /><div><span className="brand-title">鳌太行旅</span><span className="brand-sub">AOTAI · FIELD NOTES</span></div></div>
       {mode === 'walking' && <div className="compass" aria-label={`虚拟场景朝向 ${Math.round(telemetry.heading)} 度`}><span>{['北', '东北', '东', '东南', '南', '西南', '西', '西北'][Math.round(telemetry.heading / 45) % 8]}</span><i /><span className="heading">{Math.round(telemetry.heading).toString().padStart(3, '0')}°</span><i /><span>方位</span><b>⌃</b></div>}
       <div className="top-actions">
-        <span className="prototype-label"><span className="live-dot" />阶段 02<span className="divider">/</span>首视点返工预览</span>
+        <span className="prototype-label"><span className="live-dot" />阶段 02<span className="divider">/</span>连续样段 · 三处观景</span>
         <button className={`icon-button ${showStats ? 'selected' : ''}`} title="性能面板（P）" aria-label="切换性能面板" aria-pressed={showStats} onClick={() => setShowStats(!showStats)}><span className="bars">▂▅▇</span></button>
         <button className="icon-button" aria-label="体验设置" onClick={openSettings}><Gear /></button>
         {mode === 'walking' && <button className="icon-button pause-button" aria-label="暂停体验" onClick={pause}>Ⅱ</button>}
@@ -122,19 +118,19 @@ export default function App() {
       <div className="eyebrow"><span />把脚步，交还给山野</div>
       <h1 id="welcome-title">山在那里。<br /><span>慢慢走过去。</span></h1>
       <p className="welcome-description">离开屏幕里的喧闹，走进一段安静的山路。<br />不赶路，不闯关。此刻，只需要向前。</p>
-      <div className="start-row"><button className="primary-button" onClick={() => openViewpoint('air')} disabled={!ready}>{ready ? '鸟瞰返工视点' : '正在准备场景'}{ready ? <Arrow /> : <span className="spinner" />}</button><button className="secondary-button" onClick={() => openViewpoint('foot')} disabled={!ready}>近景徒步<span>↗</span></button></div>
-      <p className="start-caption">原路线保留 {routeLength.toFixed(0)} 米 · 本轮先验收代表性视点</p><button className="text-button original-route" disabled={!ready} onClick={()=>{setResetToken(t=>t+1);setCruising(true);start('air');}}>沿原路线漫游 ↗</button>
+      <div className="start-row"><button className="primary-button" onClick={() => {setResetToken(t=>t+1);setCruising(true);start('air');}} disabled={!ready}>{ready ? '漫游完整样段' : '正在准备场景'}{ready ? <Arrow /> : <span className="spinner" />}</button><button className="secondary-button" onClick={() => openViewpoint('foot',1)} disabled={!ready}>石河近景<span>↗</span></button></div>
+      <p className="start-caption">{(routeLength/1000).toFixed(2)} 公里连续样段 · 3 处观景节点</p><button className="text-button original-route" disabled={!ready} onClick={()=>openViewpoint('air',1)}>鸟瞰已验收的石河视点 ↗</button>
       <div className="prototype-note"><span className="outline-badge">样段说明</span><p>太白山高山区 · 真实高程打底，岩石与草甸艺术重建。<br />虚拟路径非实地路线；本阶段暂无声音与动态天气。</p></div>
     </section>}
 
     {mode === 'intro' && !error && <aside className="field-card" aria-label="本次体验说明">
       <span className="eyebrow">山野手记 / 002</span>
-      <RouteSketch />
-      <div className="field-card-title"><h2>石海之上<br />远山之间</h2><span>↗</span></div>
-      <p>连续草甸与灰白石河，<br />先看近景，再看山的层次。</p>
+      <div className="field-route-facts"><strong>{(routeLength/1000).toFixed(2)}<small>公里 · 水平路径</small></strong><span>↑ {routeMetrics.ascent.toFixed(0)} m　↓ {routeMetrics.descent.toFixed(0)} m</span></div>
+      <div className="field-card-title"><h2>沿着山脊<br />看三重山色</h2><span>↗</span></div>
+      <p>走过风脊草坡与石河，<br />再看谷地和群峰的距离。</p>
       <div className="field-data"><span>太白山高山区</span><strong>石海 · 草甸 · 远山</strong><a href="/terrain-sources.txt" target="_blank" rel="noreferrer">高程来源与重建边界 ↗</a></div>
-      <div className="viewpoint-actions"><button disabled={!ready} onClick={()=>openViewpoint('air')}>鸟瞰首个视点 ↗</button><button disabled={!ready} onClick={()=>openViewpoint('foot')}>近景徒步</button></div>
-      <div className="field-card-foot"><span>视点确认后再扩展 2—3 公里</span><span>↗</span></div>
+      <ViewpointButtons disabled={!ready} onSelect={i=>openViewpoint('air',i)}/>
+      <div className="field-card-foot"><span>点击节点驻足 · 虚拟路径，非导航</span><span>↗</span></div>
     </aside>}
 
     {mode === 'intro' && !error && <footer className="intro-footer">
@@ -143,7 +139,7 @@ export default function App() {
     </footer>}
 
     {mode === 'walking' && <>
-      <div className="landscape-caption"><span className="eyebrow">太白山 / 高山样段</span><strong>{Math.abs(telemetry.routeDistance - VIEWPOINT.distance) < 22 ? '石河与草甸交界' : telemetry.routeDistance < VIEWPOINT.distance ? '循着山脊，走向开阔' : '石海之后，山峦渐远'}</strong><span>真实高程 · 近景艺术重建</span><div className="viewpoint-actions compact"><button onClick={()=>openViewpoint('air')}>鸟瞰视点</button><button onClick={()=>openViewpoint('foot')}>徒步视点</button></div></div>
+      <div className="landscape-caption"><span className="eyebrow">太白山 / 连续高山样段</span><strong>{chapterAtDistance(telemetry.routeDistance).name}</strong><span>真实高程 · 近景艺术重建</span><p className="node-description">{chapterAtDistance(telemetry.routeDistance).description}</p><ViewpointButtons compact selected={VIEWPOINTS.findIndex(p=>Math.abs(p.distance-telemetry.routeDistance)<40)} onSelect={i=>openViewpoint(travel,i)}/><div className="viewpoint-actions compact"><button onClick={()=>openViewpoint('air',VIEWPOINTS.indexOf(chapterAtDistance(telemetry.routeDistance)))}>鸟瞰此节点</button><button onClick={()=>openViewpoint('foot',VIEWPOINTS.indexOf(chapterAtDistance(telemetry.routeDistance)))}>徒步此节点</button></div></div>
       {travel === 'foot' && <div className="crosshair" aria-hidden="true" />}
       <div className="walking-bottom"><div className="journey-status"><span className="eyebrow">{travel === 'air' ? '让山路，带你向前' : '沿着自己的节奏'}</span><div><strong>{telemetry.distance.toFixed(0)}</strong><span>米 · {travel === 'air' ? '路径位置' : '本次步行'}</span></div><span className="terrain-label">{travel === 'air' ? `${cruising ? `自动前进 ${speed} 米/秒` : '驻足看景 · 位置保持'} · 离地约 ${telemetry.altitude.toFixed(0)} 米` : '真实高程 · 近景艺术重建'}</span></div>
         <div className="walking-help">{travel === 'foot' && <span><kbd>W A S D</kbd>移动 <kbd>SHIFT</kbd> 慢行</span>}<span>{locked ? '移动鼠标环顾四周' : '按住画面拖动 / 方向键转头'}<span className="divider">·</span><kbd>{travel === 'air' ? 'SPACE' : 'ESC'}</kbd> 暂停</span></div>
