@@ -1,10 +1,12 @@
+import type { WeatherChoice } from '../world/weather';
 export interface Settings {
   sensitivity: number;
   fov: number;
   bob: boolean;
   quality: 'eco' | 'balanced';
+  weather: WeatherChoice;
 }
-export const DEFAULT_SETTINGS: Settings = { sensitivity: 1, fov: 70, bob: false, quality: 'balanced' };
+export const DEFAULT_SETTINGS: Settings = { sensitivity: 1, fov: 70, bob: false, quality: 'balanced', weather: 'auto' };
 export const SETTINGS_KEY = 'aotai.settings.v1';
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 export function parseSettings(raw: string | null): Settings {
@@ -17,6 +19,7 @@ export function parseSettings(raw: string | null): Settings {
       fov: typeof s.fov === 'number' && Number.isFinite(s.fov) ? clamp(s.fov, 55, 90) : 70,
       bob: typeof s.bob === 'boolean' ? s.bob : false,
       quality: s.quality === 'eco' ? 'eco' : 'balanced',
+      weather: s.weather === 'clear' || s.weather === 'cloudy' || s.weather === 'mist' ? s.weather : 'auto',
     };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }

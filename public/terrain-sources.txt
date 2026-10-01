@@ -238,3 +238,6 @@ Attribution statement:
 {"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3274/1636.png","zoom":12,"x":3274,"y":1636,"downloadedAt":"2026-09-29T09:46:13.809Z","lastModified":"Sun, 19 Nov 2017 20:23:18 GMT","sources":"srtm/N33E107.tif, srtm/N34E107.tif","sha256":"a8e2d12beb8d5dd74f5aa834df7d445ef2149271f9554a0b01b0d4c2c2da5520","bytes":58581}
 {"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3273/1637.png","zoom":12,"x":3273,"y":1637,"downloadedAt":"2026-09-29T09:46:14.098Z","lastModified":"Sun, 19 Nov 2017 20:23:16 GMT","sources":"srtm/N33E107.tif","sha256":"3eb605ce230980eadcee13d3525879f78ac89827b984d769102289b8aa0aef69","bytes":51551}
 {"url":"https://elevation-tiles-prod.s3.amazonaws.com/terrarium/12/3274/1637.png","zoom":12,"x":3274,"y":1637,"downloadedAt":"2026-09-29T09:46:14.383Z","lastModified":"Sun, 19 Nov 2017 20:23:22 GMT","sources":"srtm/N33E107.tif","sha256":"d61e5d3f2a8f1f84628996228c727478de454536e11df76b737ef7ed6f14b6fc","bytes":59465}
+
+阶段 3 天气边界（2026-10-01）
+晴朗、多云、薄雾为本地艺术化编排，无实时天气服务。云图由固定种子程序生成；天空云层及地面云影是平面投影近似，雾为距离雾，非体积天气模拟。没有雨雪、雷电或声音，不可用于实地天气判断。

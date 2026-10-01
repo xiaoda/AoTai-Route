@@ -1,3 +1,4 @@
+import { applyCloudShadow, type WeatherUniforms } from './weatherMaterial';
 import { DataTexture, RGBAFormat, RepeatWrapping, LinearFilter, LinearMipmapLinearFilter, MeshStandardMaterial } from 'three';
 import { habitatAt, smooth } from '../world/habitat';
 import { sampleTerrain, type TerrainData } from '../world/terrain';
@@ -40,7 +41,7 @@ export function createSurfaceTextures(terrain: TerrainData) {
  return {detail,habitat:createCover(terrain.size,true),farHabitat:createCover(DEM.far.size,false)};
 }
 export type SurfaceTextures=ReturnType<typeof createSurfaceTextures>;
-export function createSurfaceMaterial(ground:boolean,textures:SurfaceTextures,size:number) {
+export function createSurfaceMaterial(ground:boolean,textures:SurfaceTextures,size:number,weather:WeatherUniforms) {
  const m=new MeshStandardMaterial({vertexColors:false,roughness:.96,flatShading:!ground});
  m.onBeforeCompile=shader=>{
   shader.uniforms.uDetail={value:textures.detail};shader.uniforms.uHabitat={value:textures.habitat};shader.uniforms.uGroundSize={value:size};shader.uniforms.uFarHabitat={value:textures.farHabitat};shader.uniforms.uFarSize={value:DEM.far.size};
@@ -88,7 +89,7 @@ export function createSurfaceMaterial(ground:boolean,textures:SurfaceTextures,si
    'normal=landBump(-vViewPosition,normal,surfaceHeight*detailFade);'
   ].join('\n'));
  };
- m.customProgramCacheKey=()=>ground?'aotai-meadow-v3':'aotai-granite-v3';return m;
+ m.customProgramCacheKey=()=>ground?'aotai-meadow-v3':'aotai-granite-v3';return applyCloudShadow(m,weather);
 }
 export function groundCover(x:number,z:number,height:number,normalY:number){
  const h=habitatAt(x,z,height+ELEVATION_OFFSET,1-Math.abs(normalY));return [h.stone,h.meadow,0];

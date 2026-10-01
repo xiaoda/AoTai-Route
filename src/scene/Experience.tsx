@@ -1,3 +1,4 @@
+import type { WeatherReport } from './Weather';
 import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, ACESFilmicToneMapping, PCFShadowMap } from 'three';
@@ -20,6 +21,7 @@ export interface Stats {
   x: number; y: number; z: number; renderer: string;
 }
 interface Props {
+  weatherRunning:boolean; onWeather(report:WeatherReport):void;
   mode: Mode; settings: Settings; resetToken: number; travel: TravelMode; viewpointToken: number; viewpointIndex: number;
   cruising: boolean; speed: number; altitude: number; recenterToken: number; replayToken: number;
   onReady(): void; onPause(): void; onError(message: string): void;
@@ -234,7 +236,7 @@ function WalkingScene(props: Props) {
       samples.current = []; elapsed.current = 0;
     }
   });
-  return <Landscape terrain={terrain} rocks={rocks} eco={props.settings.quality === 'eco'} />;
+  return <Landscape terrain={terrain} rocks={rocks} eco={props.settings.quality === 'eco'} weatherChoice={props.settings.weather} weatherRunning={props.weatherRunning} onWeather={props.onWeather} />;
 }
 
 export default function Experience(props: Props) {

@@ -1,3 +1,6 @@
+import WeatherControl from './components/WeatherControl';
+import { WeatherController } from './world/weather';
+import type { WeatherReport } from './scene/Weather';
 import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, type Settings } from './core/settings';
 import type { Mode, Stats, Telemetry } from './scene/Experience';
@@ -34,6 +37,7 @@ export default function App() {
   const [viewpointToken,setViewpointToken]=useState(0),[viewpointIndex,setViewpointIndex]=useState(1);
   const [ready, setReady] = useState(false), [error, setError] = useState('');
   const [settings, setSettings] = useState<Settings>(loadSettings);
+  const [weatherReport,setWeatherReport]=useState<WeatherReport>(()=>({...new WeatherController(settings.weather).snapshot(),running:false}));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [stats, setStats] = useState(EMPTY_STATS), [showStats, setShowStats] = useState(false);
   const [locked, setLocked] = useState(false), [resetToken, setResetToken] = useState(0);
@@ -99,7 +103,7 @@ export default function App() {
   return <main className={`app mode-${mode} travel-${travel}`}>
     <div className="scene-layer">
       <SceneBoundary onError={onError}><Suspense fallback={<div className="scene-loading">正在准备山野…</div>}>
-        <Experience viewpointIndex={viewpointIndex} viewpointToken={viewpointToken} mode={mode} settings={settings} resetToken={resetToken} replayToken={replayToken} travel={travel} cruising={cruising} speed={speed} altitude={altitude} recenterToken={recenterToken} onTelemetry={setTelemetry} onComplete={onComplete} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
+        <Experience weatherRunning={ready && mode !== 'paused' && !settingsOpen && !error} onWeather={setWeatherReport} viewpointIndex={viewpointIndex} viewpointToken={viewpointToken} mode={mode} settings={settings} resetToken={resetToken} replayToken={replayToken} travel={travel} cruising={cruising} speed={speed} altitude={altitude} recenterToken={recenterToken} onTelemetry={setTelemetry} onComplete={onComplete} onReady={onReady} onPause={pause} onError={onError} onStats={setStats} onInputMode={setLocked} />
       </Suspense></SceneBoundary>
     </div>
     <div className="scene-shade" aria-hidden="true" />
@@ -107,7 +111,8 @@ export default function App() {
       <div className="brand"><MountainMark /><div><span className="brand-title">鳌太行旅</span><span className="brand-sub">AOTAI · FIELD NOTES</span></div></div>
       {mode === 'walking' && <div className="compass" aria-label={`虚拟场景朝向 ${Math.round(telemetry.heading)} 度`}><span>{['北', '东北', '东', '东南', '南', '西南', '西', '西北'][Math.round(telemetry.heading / 45) % 8]}</span><i /><span className="heading">{Math.round(telemetry.heading).toString().padStart(3, '0')}°</span><i /><span>方位</span><b>⌃</b></div>}
       <div className="top-actions">
-        <span className="prototype-label"><span className="live-dot" />阶段 02<span className="divider">/</span>连续样段 · 三处观景</span>
+        <span className="prototype-label"><span className="live-dot" />阶段 03<span className="divider">/</span>动态天气 · 无声山野</span>
+        {!error && <WeatherControl choice={settings.weather} report={weatherReport} disabled={!ready} onChange={weather=>updateSettings({...settings,weather})}/> }
         <button className={`icon-button ${showStats ? 'selected' : ''}`} title="性能面板（P）" aria-label="切换性能面板" aria-pressed={showStats} onClick={() => setShowStats(!showStats)}><span className="bars">▂▅▇</span></button>
         <button className="icon-button" aria-label="体验设置" onClick={openSettings}><Gear /></button>
         {mode === 'walking' && <button className="icon-button pause-button" aria-label="暂停体验" onClick={pause}>Ⅱ</button>}
@@ -120,11 +125,11 @@ export default function App() {
       <p className="welcome-description">离开屏幕里的喧闹，走进一段安静的山路。<br />不赶路，不闯关。此刻，只需要向前。</p>
       <div className="start-row"><button className="primary-button" onClick={() => {setResetToken(t=>t+1);setCruising(true);start('air');}} disabled={!ready}>{ready ? '漫游完整样段' : '正在准备场景'}{ready ? <Arrow /> : <span className="spinner" />}</button><button className="secondary-button" onClick={() => openViewpoint('foot',1)} disabled={!ready}>石河近景<span>↗</span></button></div>
       <p className="start-caption">{(routeLength/1000).toFixed(2)} 公里连续样段 · 3 处观景节点</p><button className="text-button original-route" disabled={!ready} onClick={()=>openViewpoint('air',1)}>鸟瞰已验收的石河视点 ↗</button>
-      <div className="prototype-note"><span className="outline-badge">样段说明</span><p>太白山高山区 · 真实高程打底，岩石与草甸艺术重建。<br />虚拟路径非实地路线；本阶段暂无声音与动态天气。</p></div>
+      <div className="prototype-note"><span className="outline-badge">样段说明</span><p>太白山高山区 · 真实高程打底，岩石与草甸艺术重建。<br />虚拟路径非实地路线；晴、云、雾动态变化；本版本无声音。</p></div>
     </section>}
 
     {mode === 'intro' && !error && <aside className="field-card" aria-label="本次体验说明">
-      <span className="eyebrow">山野手记 / 002</span>
+      <span className="eyebrow">山野手记 / 003</span>
       <div className="field-route-facts"><strong>{(routeLength/1000).toFixed(2)}<small>公里 · 水平路径</small></strong><span>↑ {routeMetrics.ascent.toFixed(0)} m　↓ {routeMetrics.descent.toFixed(0)} m</span></div>
       <div className="field-card-title"><h2>沿着山脊<br />看三重山色</h2><span>↗</span></div>
       <p>走过风脊草坡与石河，<br />再看谷地和群峰的距离。</p>

@@ -1,3 +1,4 @@
+import { applyCloudShadow, type WeatherUniforms } from './weatherMaterial';
 import {useEffect,useMemo,useRef} from 'react';
 import {useFrame} from '@react-three/fiber';
 import {BufferGeometry,Float32BufferAttribute,MeshStandardMaterial,DoubleSide,InstancedMesh,Object3D,Color,Group} from 'three';
@@ -27,23 +28,23 @@ function plantGeometry(shrub:boolean){
  }
  g.setAttribute('position',new Float32BufferAttribute(p,3));g.setAttribute('color',new Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
-function plantMaterial(shrub:boolean){
+function plantMaterial(shrub:boolean,weather:WeatherUniforms){
  const m=new MeshStandardMaterial({vertexColors:true,side:DoubleSide,roughness:1});
  m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',[
   '#include <begin_vertex>',
   'vec3 plantWorld=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;',
   'float viewFade=1.-smoothstep('+(shrub?'135.,190.':'75.,125.')+',distance(cameraPosition,plantWorld));',
   'transformed.y*=viewFade;'
- ].join('\n'));};m.customProgramCacheKey=()=>shrub?'aotai-shrub-v1':'aotai-grass-v3';return m;
+ ].join('\n'));};m.customProgramCacheKey=()=>shrub?'aotai-shrub-v1':'aotai-grass-v3';return applyCloudShadow(m,weather);
 }
 function PlantChunk({items,geometry,material,x,z}:{items:Plant[];geometry:BufferGeometry;material:MeshStandardMaterial;x:number;z:number}){
  const ref=useRef<InstancedMesh>(null);
  useEffect(()=>{if(!ref.current)return;const o=new Object3D(),c=new Color();items.forEach((p,i)=>{o.position.set(p.x-x,p.y,p.z-z);o.rotation.set(0,p.rotation,0);o.scale.setScalar(p.scale);o.updateMatrix();ref.current!.setMatrixAt(i,o.matrix);c.setHSL(p.shrub?.23+p.tone*.035:.19+p.tone*.04,.32+p.tone*.12,p.shrub?.20+p.tone*.09:.28+p.tone*.1);ref.current!.setColorAt(i,c);});ref.current.instanceMatrix.needsUpdate=true;if(ref.current.instanceColor)ref.current.instanceColor.needsUpdate=true;ref.current.computeBoundingSphere();},[items,x,z]);
  return <instancedMesh ref={ref} position={[x,0,z]} args={[geometry,material,items.length]} receiveShadow />;
 }
-export default function Vegetation({terrain,rocks,eco}:{terrain:TerrainData;rocks:Rock[];eco:boolean}){
+export default function Vegetation({terrain,rocks,eco,weather}:{terrain:TerrainData;rocks:Rock[];eco:boolean;weather:WeatherUniforms}){
  const all=useMemo(()=>generatePlants(terrain,rocks),[terrain,rocks]);
- const resources=useMemo(()=>({grass:plantGeometry(false),shrub:plantGeometry(true),gm:plantMaterial(false),sm:plantMaterial(true)}),[]);
+ const resources=useMemo(()=>({grass:plantGeometry(false),shrub:plantGeometry(true),gm:plantMaterial(false,weather),sm:plantMaterial(true,weather)}),[weather]);
  const group=useRef<Group>(null),elapsed=useRef(0);
  const chunks=useMemo(()=>{
   const bins=new Map<string,{x:number;z:number;shrub:boolean;items:Plant[]}>();
