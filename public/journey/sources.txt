@@ -1,0 +1,43 @@
+鳌太地理导览 · 资料与真实性说明
+核对日期：2026-10-02
+
+一、区域地形
+Mapzen Terrain Tiles / USGS SRTM，公开 Terrarium z12 的 24 张瓦片。
+https://registry.opendata.aws/terrain-tiles/
+https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+原瓦片约 32 米采样；区域展示网格约 95 米。SRTM 数据不等于最新测绘。
+高程未夸大。晕渲设色由本项目根据高程计算，不是卫星照片。
+固定瓦片来源、哈希、获取时间记录在 terrain.json。导入脚本 scripts/import-journey-terrain.mjs。
+
+二、地名点位
+鳌山：PeakWiki pid=352，33.94223 N / 107.41925 E；社区记录，近导航架，不是精密控制点。
+麦秸岭：PeakWiki pid=476，33.95441 N / 107.48387 E；社区记录。
+太白梁：Peakbagger pid=74763，33.917731 N / 107.668883 E；WGS84 山峰数据库记录。
+大爷海：Mapcarta W334814966 / OpenStreetMap way 334814966，33.9573 N / 107.7607 E，中心点。
+拔仙台：PeakWiki pid=39，33.95512 N / 107.76528 E；社区记录。
+https://www.peakwiki.org/en/peak.php?pid=352
+https://www.peakwiki.org/en/peak.php?pid=476
+https://www.peakbagger.com/peak.aspx?pid=74763
+https://mapcarta.com/W334814966
+https://www.peakwiki.org/en/peak.php?pid=39
+大爷海与拔仙台的资料海拔：国家林业和草原局 2021-08-27《中国绿色时报：大秦岭的封面太白山》。
+https://www.forestry.gov.cn/c/www/ztq/13099.jhtml
+鳌太主脊联系：北京科学中心地理介绍。
+https://bjsc.net.cn/bjsc/kdbjkx/kdbjkxwwmxd/wwmxdycwz/wwmxdycdqkj/202603/t20260331_174985.html
+西至东地名先后参考历史记录，仅核对地理关系，不提供当下通行建议。
+https://www.8264.com/youji/2401095.html
+
+三、明确的表达边界
+仅选择五个地理锚点，不是完整鳌太全线。点间直线是展览顺序与方向示意，不是 GPS 轨迹，不贴合每一道山脊或道路。中间省略飞机梁、金字塔、东塬、万仙阵、跑马梁等地点。本版不包含进出山线位、补给、营地及通行指引。
+大爷海—拔仙台按展览顺序呈现，不声称唯一现实路线。秒数只控制展示播放，不对应实际行程时间。
+三维仅为真实 DEM 立体地形，不复刻湖岸、步道、建筑或植被。大爷海为位置标记，不绘制虚构湖面。
+原“地貌漫游”仍是 2.23 公里虚拟样段；不将其任何节点更名为上述真实地标。原说明见 /terrain-sources.txt。
+所有文字为原创归纳。未分发第三方照片、卫星底图或未经授权的 GPX。
+
+四、OpenStreetMap 署名
+© OpenStreetMap contributors，ODbL 1.0。
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+使用的数据仅为大爷海中心点，经 Mapcarta 核对。独立点位数据在 /journey/osm-lake-point.json，按 ODbL 提供；未使用 OSM 底图或步道几何。
+
+本产品仅为数字地理展览，不用于现实穿越导航。

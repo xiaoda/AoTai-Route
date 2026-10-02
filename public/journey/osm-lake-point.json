@@ -1,0 +1,11 @@
+{
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "source": "https://mapcarta.com/W334814966",
+  "osmSource": "https://www.openstreetmap.org/way/334814966",
+  "retrieved": "2026-10-02",
+  "note": "Mapcarta 所示中心点，不是湖岸几何。OSM 直接 API 本次返回 429，未宣称直接下载成功。",
+  "name": "大爷海",
+  "lon": 107.7607,
+  "lat": 33.9573
+}

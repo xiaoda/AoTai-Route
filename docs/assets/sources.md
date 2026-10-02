@@ -80,3 +80,16 @@ React / React DOM 19.3.0（MIT）、Three.js 0.186.1（MIT）、R3F 9.8.1（MIT�
 | 谷地与群峰 | 同源 DEM 的谷地、山肩和重叠山脊 | 裸露块石比例、相机朝向；不是大爷海视点 |
 
 路线水平 2229.152 m、按采样贴地 2306.419 m，累计升/降 272.284 / 213.359 m；均为数字样段统计，非实地测量或通行建议。衍生 JSON SHA256：ed6da50257a70526342b5d2cbb145bc05f29c47797dba8ed917dbb72e5bae663。
+
+
+## 2026-10-02：地理导览新增资料（与旧样段分离）
+
+- 区域范围：107.34–107.83 E、33.83–34.05 N。24 张 Terrarium z12 瓦片；全部响应元数据为 SRTM。覆盖鳌山与太白山，不修改原 4 瓦片样段。
+- 固定来源/哈希：public/journey/terrain.json；原始缓存 .preview/terrain-source/。约 32 米瓦片采样，区域展示为 481 × 261 点，约 95 米网格。高程不夸大。
+- public/journey/relief.png 是脚本基于 DEM 计算的原创设色与晕渲，不是卫星影像或 AI 生成山形。
+- 地理锚点来自 PeakWiki（鳌山、麦秸岭、拔仙台）、Peakbagger（太白梁）、Mapcarta / OSM（大爷海中心）。确切链接、值与用途在 src/journey/landmarks.ts 及 public/journey/sources.txt。只提取少量地理事实，未转载照片或整篇文字。
+- 海拔资料与 DEM 采样分开，不通过改高程强行匹配。社区点位不是测绘控制点。鳌山点位近导航架，不能宣称精密峰顶定位。
+- 大爷海仅取 OSM way 334814966 的中心点，经 Mapcarta 核对。ODbL 独立数据见 public/journey/osm-lake-point.json，UI 与来源说明有署名及许可链接。未使用 OSM 底图、湖岸几何或完整轨迹。
+- OSM 探索失败有记录：Overpass HTTP 406、原始区域 API HTTP 429；未绕过限制，未声称获得区域步道。Columbia 历史 PDF 当前 URL 返回商城 HTML，未采用为资产来源。Peakbagger 点位来自可检索条目，页面直接打开曾出错；按社区数据库来源标记，而非官方测量。
+- 点间直线是原创叙事顺序/方向示意，不是实际山脊线或 GPS。中间地名/路段有省略；不提供营地、补给、进出山路径或通行建议。
+- 新立体地形只表达 DEM 起伏，不虚构湖面、建筑、步道或植被；旧 2.23 公里三维样段仍保持原虚拟身份。
